@@ -1,7 +1,7 @@
 /* Painel Bread King: tipografia e cores do manual de marca (Rubik + Nunito Sans; vermelho #B8172E, dourado #D69A2D, creme, café) */
 *{box-sizing:border-box}
 :root{--red:#B8172E;--red2:#A3162A;--gold:#D69A2D;--dark:#2A1612;--cream:#FBF5EC;--wheat:#F4E7D3;--card:#FFFDF9;--line:#EADCC6;--body:#5A4038;--muted:#7A655B;--light:#FFF8EE;--ok:#2F7D45;--okbg:#DDF1CF;--warn:#B8741F;--warnbg:#FBEBD0}
-html,body{margin:0;background:var(--cream);color:var(--dark);font-family:"Nunito Sans",system-ui,sans-serif;font-size:15px;line-height:1.45}
+html,body{margin:0;background:var(--cream);color:var(--dark);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.45}
 h1,h2,h3,h4{font-family:Rubik,system-ui,sans-serif;margin:0;letter-spacing:-.01em}
 a{color:inherit;text-decoration:none}
 button,input,select,textarea{font:inherit;color:inherit}

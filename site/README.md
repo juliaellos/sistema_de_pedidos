@@ -7,30 +7,31 @@ clientes, configurações) fica no `localStorage` do navegador: é a simulação
 
 | Arquivo | O que é |
 |---|---|
-| `index.html` | **Página principal: o cardápio.** Seções "Recomendados pra você" (só pra quem já pediu), "Mais pedidos" e as 7 categorias, cada uma com "Ver todos". Busca, quantidade no card, modal do produto. |
+| `index.html` | **Página principal: o cardápio.** Hero estilo app de delivery (banner, logo, aberto/fechado, Ver mais com Sobre e Horário, pedido mínimo), busca, "Recomendados pra você" (só pra quem já pediu), "Mais pedidos" e as 7 categorias com "Ver todos". |
 | `categoria.html?c=Padaria` | Grade completa de uma categoria (ou `c=mais-pedidos`, `c=recomendados`). |
 | `pedido.html` | Carrinho, Entrega (bairro + taxa) ou Retirada, dados, cupom, pagamento simulado (Pix ou cartão). Ao aprovar, cria o pedido e vai pro acompanhamento. |
-| `acompanhamento.html?n=BK-1001` | Linha do tempo do pedido. Atualiza sozinha quando a loja muda o status no painel. Sem parâmetro, lista os pedidos do cliente. |
-| `sobre.html` | A antiga home clonada (hero, loja, por que Bread King). Linkada no rodapé como "Sobre nós". |
+| `acompanhamento.html` | **Meus pedidos** (botão no topo): em andamento e anteriores. Com `?n=BK-1001`, a linha do tempo do pedido e as mensagens automáticas da loja. Atualiza sozinha. |
+| `sobre.html` | A antiga home clonada, em standby. **Não é linkada em lugar nenhum**; abre só pelo arquivo. |
 | `admin/index.html` | **Painel da unidade.** Sem link no site. Senha padrão `breadking` (troque em Configurações). |
 
 ## Painel (`admin/`)
 
-- **Pedidos:** KPIs do dia, filtros, detalhe, avanço de status (Pago → Em preparo → Saiu pra entrega / Pronto pra retirada → Concluído), cancelar, exportar CSV. Ao marcar "Saiu pra entrega" ou "Pronto pra retirada" abre o WhatsApp do cliente com a mensagem automática já escrita e registra no histórico (sem API, é o máximo que dá; com API oficial o envio é silencioso).
-- **Clientes:** cadastro automático pelos pedidos: nº de pedidos, total, ticket, último pedido, bairro, preferência, produtos mais comprados. Exportar CSV.
+- **Pedidos:** KPIs do dia, filtros, detalhe, avanço de status (Pago → Em preparo → Saiu pra entrega / Pronto pra retirada → Concluído), cancelar, exportar CSV. Ao marcar "Saiu pra entrega" ou "Pronto pra retirada" a mensagem automática é enviada sozinha: na simulação ela fica registrada no pedido e aparece pro cliente na página do pedido; em produção sai pela API de WhatsApp.
+- **Desempenho:** faturamento, ticket médio e nº de pedidos por mês (últimos 3/6/12 meses ou período livre), com tooltip e versão em tabela.
+- **Curva ABC:** produtos ou clientes por receita, classes A/B/C, filtro de período, CSV.
+- **Clientes:** busca por nome, e-mail ou telefone; cadastro automático pelos pedidos: nº de pedidos, total, ticket, último pedido, bairro, preferência, produtos mais comprados. Exportar CSV.
 - **Produtos:** adicionar, editar (nome, categoria, peso, descrição, preço, foto, destaque), ocultar/ativar, excluir, restaurar o catálogo clonado. As mudanças aparecem no site na hora.
 - **Segmentações:** 14 filtros combináveis (último pedido entre datas, inativos há X dias, nº de pedidos, comprou o produto X, comprou/nunca comprou a categoria, ticket, total gasto, top % em gasto, bairro, só entrega/retirada, cupom) + 7 públicos prontos + públicos salvos. Mensagem com `{nome}`, exportar CSV e botão "Enviar" por cliente (abre o WhatsApp).
 - **Configurações:** dados da loja, taxas por bairro, cupons, modelos das mensagens automáticas, senha. Botões de simulação: gerar 15 pedidos de exemplo, apagar pedidos, zerar tudo.
 
 ## Identidade
 
-Fontes oficiais Bread King (Rubik + Nunito Sans) servidas localmente em `fontes/`; paleta do manual
-(vermelho #B8172E, dourado #D69A2D, creme #FBF5EC, café #2A1612) em `estilos/tema.css`.
+Rubik (títulos) + Inter (texto) servidas localmente em `fontes/`; vermelho #B8172E e dourado #D69A2D do manual sobre o fundo cinza-claro original. Logo sem fundo em `imagens/marca/logo-bread-king.png`. Banner do hero em `imagens/marca/banner-loja.jpg` (colagem provisória de fotos de produto; trocar pela foto da loja).
 `estilos/referencia.css` é o CSS clonado do site original (não editar).
 
 ## Onde mudar
 
-- Unidade, WhatsApp, taxas, cupons: `dados/unidade.js` (ou pelo painel, que grava por cima no navegador).
+- Unidade, WhatsApp, horários por dia, CNPJ, pedido mínimo, taxas, cupons: `dados/unidade.js` (ou pelo painel, que grava por cima no navegador).
 - Catálogo inicial: `dados/catalogo.js` (ou pelo painel).
 - Fotos: `imagens/produtos/` (máx. 1200 px). O "Casadinho C-/12 Und" não tem foto no site original; aparece o logo.
 

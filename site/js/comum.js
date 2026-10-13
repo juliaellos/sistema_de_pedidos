@@ -9,7 +9,7 @@
     ghost: BTN + " hover:bg-accent hover:text-accent-foreground"
   };
 
-  window.imgFallback = function (img) { img.onerror = null; img.src = "imagens/marca/logo-bread-king-CVrHv7_B.png"; img.classList.add("object-contain", "p-6"); img.style.background = "#faf7ee"; };
+  window.imgFallback = function (img) { img.onerror = null; img.src = "imagens/marca/logo-bread-king.png"; img.classList.add("object-contain", "p-6"); img.style.background = "#faf7ee"; };
 
   // ---------- formatação ----------
   window.moeda = (v) => "R$ " + (Math.round(v * 100) / 100).toFixed(2).replace(".", ",");
@@ -74,15 +74,60 @@
     el.className = "topo-site"; 
     el.innerHTML = '<div class="container mx-auto flex h-16 items-center justify-between gap-3 px-4">' +
       (opts.voltar ? '<a class="flex items-center gap-2 font-bold text-foreground hover:text-primary" href="' + opts.voltar + '">' + icone("arrow-left", "h-5 w-5") + "<span>" + esc(opts.voltarRotulo || "Voltar") + "</span></a>" : "") +
-      '<a class="marca" href="index.html"><img src="imagens/marca/logo-bread-king-CVrHv7_B.png" alt="Bread King"/><span>' + (opts.titulo ? esc(opts.titulo) : "Bread King") + "<small>" + esc(U.nome) + " · delivery</small></span></a>" +
-      '<a class="link-carrinho" href="pedido.html" id="link-carrinho">' + icone("shopping-bag", "h-4 w-4") + '<span class="hidden sm:inline">Pedido</span><span class="n">' + Carrinho.totalItens() + "</span></a></div>";
+      '<a class="marca" href="index.html"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/><span>' + (opts.titulo ? esc(opts.titulo) : "Bread King") + "<small>" + esc(U.nome) + " · delivery</small></span></a>" +
+      '<div class="flex items-center gap-2"><a class="btn-meus-pedidos" href="acompanhamento.html">' + icone("package", "h-4 w-4") + '<span class="hidden sm:inline">Meus pedidos</span></a>' +
+      '<a class="link-carrinho" href="pedido.html" id="link-carrinho">' + icone("shopping-bag", "h-4 w-4") + '<span class="hidden sm:inline">Pedido</span><span class="n">' + Carrinho.totalItens() + "</span></a></div></div>";
   };
   function atualizarLinkCarrinho() { const n = document.querySelector("#link-carrinho .n"); if (n) n.textContent = Carrinho.totalItens(); }
+
+  // ---------- horário de funcionamento ----------
+  const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+  window.estaAberto = function () {
+    const agora = new Date(); const h = (U.horarios || {})[agora.getDay()] || []; const m = agora.getHours() * 60 + agora.getMinutes();
+    for (const f of h) { const [a, b] = f.split("-").map((t) => { const [hh, mm] = t.split(":").map(Number); return hh * 60 + mm; }); if (m >= a && m < b) return { aberto: true, fecha: f.split("-")[1] }; }
+    const prox = h.map((f) => f.split("-")[0]).find((t) => { const [hh, mm] = t.split(":").map(Number); return hh * 60 + mm > m; });
+    return { aberto: false, abre: prox || null };
+  };
+  const fmtFaixas = (l) => (l && l.length) ? l.map((f) => f.replace("-", " às ")).join(" - ") : "Fechado";
+
+  // ---------- gaveta "Ver mais" (Sobre / Horário) ----------
+  window.abrirVerMais = function (aba) {
+    document.querySelectorAll(".gaveta-fundo").forEach((g) => g.remove());
+    const f = document.createElement("div"); f.className = "gaveta-fundo";
+    const hoje = new Date().getDay();
+    const sobre = '<p>' + esc(U.razaoSocial || U.nomeCompleto) + '</p>' +
+      '<div class="caixa-info"><b>' + esc(U.nomeCompleto) + '</b><p>' + esc(U.sobre || "") + '</p><ul style="margin:.6rem 0 0;padding:0">' +
+      '<li>' + icone("check") + 'Pague no site e acompanhe o pedido em tempo real</li><li>' + icone("check") + 'Entrega em Palhoça com taxa por bairro</li><li>' + icone("check") + 'Retirada na loja sem taxa</li></ul></div>' +
+      '<h4>Endereço</h4><p>' + esc(U.endereco) + '<br/>' + esc(U.bairro) + ' · ' + esc(U.cidade) + '</p><p><a class="text-primary font-semibold" href="' + U.mapa + '" target="_blank" rel="noopener">Ver no mapa</a></p>' +
+      '<h4>Contato</h4><p>WhatsApp ' + esc(U.whatsappFormatado) + '</p>' +
+      '<h4>Outras informações</h4><p>CNPJ: ' + esc(U.cnpj || "—") + '</p><p>Pedido mínimo: ' + moeda(U.pedidoMinimo || 0) + '</p>';
+    const horario = '<table class="horarios">' + DIAS.map((d, i) => '<tr class="' + (i === hoje ? "hoje" : "") + '"><td>' + (i === hoje ? icone("clock", "inline h-3.5 w-3.5 mr-1 text-primary") : "") + d + "</td><td>" + fmtFaixas((U.horarios || {})[i]) + "</td></tr>").join("") + "</table>";
+    f.innerHTML = '<div class="gaveta-loja" role="dialog" aria-modal="true"><button class="fechar" aria-label="Fechar" data-fechar>' + icone("x", "h-6 w-6") + '</button>' +
+      '<div class="abas"><button data-aba="sobre" class="' + (aba !== "horario" ? "on" : "") + '">Sobre</button><button data-aba="horario" class="' + (aba === "horario" ? "on" : "") + '">Horário</button></div>' +
+      '<div data-painel="sobre" class="' + (aba === "horario" ? "hidden" : "") + '">' + sobre + '</div><div data-painel="horario" class="' + (aba === "horario" ? "" : "hidden") + '">' + horario + "</div></div>";
+    f.addEventListener("click", (e) => {
+      if (e.target === f || e.target.closest("[data-fechar]")) { f.remove(); document.body.style.overflow = ""; return; }
+      const b = e.target.closest("[data-aba]"); if (b) { f.querySelectorAll("[data-aba]").forEach((x) => x.classList.toggle("on", x === b)); f.querySelectorAll("[data-painel]").forEach((p) => p.classList.toggle("hidden", p.dataset.painel !== b.dataset.aba)); }
+    });
+    document.body.appendChild(f); document.body.style.overflow = "hidden";
+  };
+  document.addEventListener("click", (e) => { const a = e.target.closest("[data-ver-mais]"); if (a) { e.preventDefault(); abrirVerMais(a.dataset.verMais || "sobre"); } });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll(".gaveta-fundo").forEach((g) => { g.remove(); document.body.style.overflow = ""; }); });
+
+  // ---------- hero da loja ----------
+  window.renderHeroLoja = function (el) {
+    const st = estaAberto();
+    el.innerHTML = '<div class="container mx-auto px-4 loja-hero"><img class="loja-banner" src="' + esc(U.banner || "imagens/marca/banner-loja.jpg") + '" alt="' + esc(U.nomeCompleto) + '"/>' +
+      '<div class="loja-cab"><div class="loja-logo"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></div><div><h1 class="loja-nome">' + esc(U.nomeCompleto.replace("Bread King ", "Bread King - ")) + '<span class="selo" title="Loja oficial">' + icone("star", "h-5 w-5 fill-current") + "</span>" + (U.avaliacao ? '<span class="text-base font-bold text-secondary">★ ' + U.avaliacao.toFixed(1) + "</span>" : "") + "</h1>" +
+      '<div class="loja-meta"><span class="' + (st.aberto ? "aberto" : "fechado") + '">' + (st.aberto ? "Aberto agora · fecha às " + st.fecha : "Fechado agora" + (st.abre ? " · abre às " + st.abre : "")) + '</span><span>·</span><span>Entrega e retirada</span><span>·</span><span>' + esc(U.bairro) + ", " + esc(U.cidade) + '</span></div></div>' +
+      '<div class="loja-acoes"><button class="btn-vermais" data-ver-mais="sobre">Ver mais</button><span class="sep"></span><span class="inline-flex items-center gap-1">' + icone("tag", "h-4 w-4") + "Pedido mínimo " + moeda(U.pedidoMinimo || 0) + "</span></div></div>" +
+      '<div class="loja-busca">' + icone("search") + '<input id="busca" type="search" placeholder="Buscar no cardápio"/></div></div>';
+  };
 
   // ---------- rodapé ----------
   window.renderRodape = function (el) {
     el.innerHTML = '<div class="container mx-auto px-4 py-16"><div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12">' +
-      '<div class="lg:col-span-2"><img alt="Bread King" class="h-16 mb-4" src="imagens/marca/logo-bread-king-CVrHv7_B.png"/>' +
+      '<div class="lg:col-span-2"><img alt="Bread King" class="h-14 mb-4" src="imagens/marca/logo-bread-king.png"/>' +
       '<p class="text-white/70 max-w-md mb-6">A primeira padaria de supercongelados do Brasil.</p>' +
       '<div class="flex gap-4">' +
       '<a class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors" href="' + U.instagram + '" target="_blank" rel="noopener" aria-label="Instagram">' + icone("instagram", "h-5 w-5") + "</a>" +
@@ -90,9 +135,8 @@
       '<a class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors" href="mailto:' + U.email + '" aria-label="E-mail">' + icone("mail", "h-5 w-5") + "</a></div></div>" +
       '<div><h4 class="font-bold text-lg mb-4">Links Rápidos</h4><ul class="space-y-3">' +
       '<li><a class="text-white/70 hover:text-white transition-colors" href="index.html">Cardápio</a></li>' +
-      '<li><a class="text-white/70 hover:text-white transition-colors" href="sobre.html">Sobre nós</a></li>' +
-      '<li><a class="text-white/70 hover:text-white transition-colors" href="sobre.html#lojas">Nossa Loja</a></li>' +
-      '<li><a class="text-white/70 hover:text-white transition-colors" href="acompanhamento.html">Acompanhar pedido</a></li></ul></div>' +
+      '<li><a class="text-white/70 hover:text-white transition-colors" href="acompanhamento.html">Meus pedidos</a></li>' +
+      '<li><a class="text-white/70 hover:text-white transition-colors" href="#" data-ver-mais>Horário e informações</a></li></ul></div>' +
       '<div><h4 class="font-bold text-lg mb-4">Contato</h4><ul class="space-y-4">' +
       '<li class="flex items-start gap-3"><span class="h-5 w-5 text-[#25D366] mt-0.5 shrink-0">' + LOGO_WHATS + '</span><div><p class="font-medium">WhatsApp</p><a class="text-white/70 hover:text-white transition-colors" href="' + linkWhats() + '" target="_blank" rel="noopener">' + U.whatsappFormatado + "</a></div></li>" +
       '<li class="flex items-start gap-3">' + icone("map-pin", "h-5 w-5 text-primary mt-0.5") + '<div><p class="font-medium">Unidade</p><p class="text-white/70">' + esc(U.endereco) + "<br/>" + esc(U.bairro + ", " + U.cidade) + "</p></div></li></ul></div></div>" +
@@ -103,7 +147,7 @@
   // ---------- card da loja (seção Nossa Loja) ----------
   window.renderLoja = function (el) {
     el.innerHTML = '<div class="store-card max-w-md mx-auto"><div class="store-card-image">' +
-      '<img alt="Unidade ' + esc(U.nome) + '" class="w-full h-full object-cover" src="' + U.fotoLoja + '" onerror="this.outerHTML=\'<div class=loja-fallback><img src=imagens/marca/logo-bread-king-CVrHv7_B.png alt=\\\'Bread King\\\' class=\\\'h-24 object-contain drop-shadow-lg\\\'/></div>\'"/>' +
+      '<img alt="Unidade ' + esc(U.nome) + '" class="w-full h-full object-cover" src="' + U.fotoLoja + '" onerror="this.outerHTML=\'<div class=loja-fallback><img src=imagens/marca/logo-bread-king.png alt=\\\'Bread King\\\' class=\\\'h-24 object-contain drop-shadow-lg\\\'/></div>\'"/>' +
       '</div><div class="p-5"><h3 class="text-lg font-bold mb-3">Unidade ' + esc(U.nome) + '</h3><div class="space-y-2 mb-4">' +
       '<div class="flex items-start gap-2 text-muted-foreground">' + icone("map-pin", "h-4 w-4 text-primary mt-0.5 shrink-0") + '<div><p class="text-sm">' + esc(U.endereco) + '</p><p class="text-sm">' + esc(U.bairro + ", " + U.cidade) + "</p></div></div>" +
       '<div class="flex items-center gap-2 text-muted-foreground">' + icone("clock", "h-4 w-4 text-secondary shrink-0") + '<p class="text-sm">' + esc(U.horario) + "</p></div>" +
@@ -117,6 +161,7 @@
     document.querySelectorAll("[data-unidade]").forEach((e) => { e.textContent = U[e.dataset.unidade] || ""; });
     document.querySelectorAll("[data-whats-href]").forEach((e) => { e.href = linkWhats(e.dataset.whatsHref || ""); });
     const t = document.getElementById("topo"); if (t) renderTopo(t, { voltar: t.dataset.voltar, voltarRotulo: t.dataset.voltarRotulo, titulo: t.dataset.titulo });
+    const hl = document.getElementById("hero-loja"); if (hl) renderHeroLoja(hl);
     const f = document.querySelector("footer.footer-gradient"); if (f) renderRodape(f);
     const l = document.getElementById("loja-card"); if (l) renderLoja(l);
     if (!document.body.dataset.semWhats) botaoWhatsFlutuante();
