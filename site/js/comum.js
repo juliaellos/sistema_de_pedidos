@@ -120,7 +120,7 @@
     el.innerHTML = '<div class="container mx-auto px-4 loja-hero"><img class="loja-banner" src="' + esc(U.banner || "imagens/marca/banner-loja.jpg") + '" alt="' + esc(U.nomeCompleto) + '"/>' +
       '<div class="loja-cab"><div class="loja-logo"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></div><div><h1 class="loja-nome">' + esc(U.nomeCompleto.replace("Bread King ", "Bread King - ")) + '<span class="selo" title="Loja oficial">' + icone("star", "h-5 w-5 fill-current") + "</span>" + (U.avaliacao ? '<span class="text-base font-bold text-secondary">★ ' + U.avaliacao.toFixed(1) + "</span>" : "") + "</h1>" +
       '<div class="loja-meta"><span class="' + (st.aberto ? "aberto" : "fechado") + '">' + (st.aberto ? "Aberto agora · fecha às " + st.fecha : "Fechado agora" + (st.abre ? " · abre às " + st.abre : "")) + '</span><span>·</span><span>Entrega e retirada</span><span>·</span><span>' + esc(U.bairro) + ", " + esc(U.cidade) + '</span></div></div>' +
-      '<div class="loja-acoes"><button class="btn-vermais" data-ver-mais="sobre">Ver mais</button><span class="sep"></span><span class="inline-flex items-center gap-1">' + icone("tag", "h-4 w-4") + "Pedido mínimo " + moeda(U.pedidoMinimo || 0) + "</span></div></div>" +
+      '<div class="loja-acoes"><button class="btn-vermais" data-ver-mais="sobre">Ver mais</button></div></div>' +
       '<div class="loja-busca">' + icone("search") + '<input id="busca" type="search" placeholder="Buscar no cardápio"/></div></div>';
   };
 
@@ -139,7 +139,7 @@
       '<li><a class="text-white/70 hover:text-white transition-colors" href="#" data-ver-mais>Horário e informações</a></li></ul></div>' +
       '<div><h4 class="font-bold text-lg mb-4">Contato</h4><ul class="space-y-4">' +
       '<li class="flex items-start gap-3"><span class="h-5 w-5 text-[#25D366] mt-0.5 shrink-0">' + LOGO_WHATS + '</span><div><p class="font-medium">WhatsApp</p><a class="text-white/70 hover:text-white transition-colors" href="' + linkWhats() + '" target="_blank" rel="noopener">' + U.whatsappFormatado + "</a></div></li>" +
-      '<li class="flex items-start gap-3">' + icone("map-pin", "h-5 w-5 text-primary mt-0.5") + '<div><p class="font-medium">Unidade</p><p class="text-white/70">' + esc(U.endereco) + "<br/>" + esc(U.bairro + ", " + U.cidade) + "</p></div></li></ul></div></div>" +
+      '<li class="flex items-start gap-3">' + icone("map-pin", "h-5 w-5 text-primary mt-0.5") + '<div><p class="font-medium">Endereço</p><p class="text-white/70">' + esc(U.endereco) + "<br/>" + esc(U.bairro + ", " + U.cidade) + "</p></div></li></ul></div></div>" +
       '<div class="h-px bg-white/10 my-8"></div>' +
       '<div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-white/50"><p>© ' + new Date().getFullYear() + " " + esc(U.nomeCompleto) + '. Todos os direitos reservados.</p><p class="flex items-center gap-1">Feito com ' + icone("heart", "h-4 w-4 text-primary fill-primary") + " em " + esc(U.nome) + "</p></div></div>";
   };

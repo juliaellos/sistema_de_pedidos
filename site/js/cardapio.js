@@ -11,11 +11,12 @@
   }
   function lerStepper(el) { const i = el.querySelector("input"); let v = Math.floor(Number(i.value) || 1); v = Math.max(1, Math.min(99, v)); i.value = v; return v; }
 
+  const mini = (p) => p.imagem && p.imagem.startsWith("imagens/produtos/") && !p.imagem.startsWith("data:") ? p.imagem.replace("imagens/produtos/", "imagens/produtos/mini/").replace(/\.[a-z]+$/i, ".jpg") : p.imagem;
   function card(p) {
     const noPedido = Carrinho.quantidade(p.id);
     return '<div class="w-[72vw] max-w-[260px] shrink-0 snap-start sm:w-[260px]" data-card="' + p.id + '">' +
       '<div class="product-card cursor-pointer group h-full overflow-hidden transition-all duration-300"><div class="flex h-full flex-col">' +
-      '<div class="aspect-square bg-muted/30 relative overflow-hidden" data-abrir="' + p.id + '"><img alt="' + esc(p.nome) + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" src="' + p.imagem + '" onerror="imgFallback(this)"/>' +
+      '<div class="aspect-square bg-muted/30 relative overflow-hidden" data-abrir="' + p.id + '"><img alt="' + esc(p.nome) + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" decoding="async" width="520" height="520" src="' + mini(p) + '" onerror="if(this.src.indexOf(\'/mini/\')>0){this.src=this.src.replace(\'/mini/\',\'/\');}else{imgFallback(this)}"/>' +
       (p.destaque ? '<div class="badge-featured">⭐ Destaque</div>' : "") +
       '<div class="no-pedido' + (noPedido ? "" : " hidden") + '" data-no-pedido="' + p.id + '">' + noPedido + " no pedido</div></div>" +
       '<div class="flex flex-1 flex-col p-3"><h3 class="min-h-10 font-bold text-sm md:text-base line-clamp-2 group-hover:text-primary transition-colors duration-300 leading-tight" data-abrir="' + p.id + '">' + esc(p.nome) + "</h3>" +
@@ -92,7 +93,7 @@
       const on = b.dataset.ir === id;
       ["bg-primary", "text-primary-foreground", "hover:bg-primary/90"].forEach((c) => b.classList.toggle(c, on));
       ["border", "border-input", "bg-background", "hover:bg-accent", "hover:text-accent-foreground"].forEach((c) => b.classList.toggle(c, !on));
-      if (on) b.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      if (on) { const nav = b.parentElement; const alvo = b.offsetLeft - nav.clientWidth / 2 + b.offsetWidth / 2; if (Math.abs(nav.scrollLeft - alvo) > 20) nav.scrollTo({ left: alvo, behavior: "smooth" }); }
     });
   }
   function observar() {

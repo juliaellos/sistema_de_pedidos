@@ -113,3 +113,10 @@ body:has(#barra-carrinho) .whats-flutuante{bottom:5.5rem}
 .st.pago,.st.preparo{background:#fdf1dc;color:#B8741F}.st.saiu,.st.pronto{background:#e3ecfb;color:#2b4f8a}.st.concluido{background:#DDF1CF;color:#2F7D45}.st.cancelado{background:#eee;color:#777}
 
 @media(min-width:640px){.sm\:inline{display:inline}}
+
+/* desempenho: cada seção de categoria só é renderizada quando se aproxima da tela */
+[data-category]{content-visibility:auto;contain-intrinsic-size:auto 620px}
+.product-card{transition:box-shadow .25s,transform .25s,border-color .25s}
+.product-card img{transition:none}
+.group:hover .group-hover\:scale-105{transform:none}
+html{scroll-behavior:auto}

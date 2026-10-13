@@ -178,7 +178,7 @@ window.CATALOGO = [
   "descricao": "Dois sabores em perfeita harmonia: brigadeiro e beijinho juntos nesse Clássico brasileiro",
   "preco": 24.99,
   "destaque": true,
-  "imagem": "imagens/produtos/1768754076449-z9yscxisjpp.jpg"
+  "imagem": "imagens/marca/logo-bread-king.png"
  },
  {
   "id": "donuts-chocolate-c-2-und",
