@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="author" content="Bread King Palhoça"/><link rel="icon" type="image/png" href="imagens/marca/logo-bread-king-CVrHv7_B.png"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/><link rel="stylesheet" href="estilos/referencia.css"/><link rel="stylesheet" href="estilos/extra.css"/><script src="dados/unidade.js"></script><script src="dados/catalogo.js"></script><script src="js/icones.js"></script><script src="js/comum.js"></script>
+<title>Seu pedido | Bread King Palhoça</title>
+<meta name="robots" content="noindex"/>
+<script src="js/pedido.js"></script>
+</head>
+<body data-sem-whats="1" data-sem-barra="1">
+<div class="min-h-screen bg-background pb-12">
+<header class="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md"><div class="container mx-auto flex h-16 items-center justify-between px-4"><a class="inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 gap-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2" href="cardapio.html"><span data-icone="arrow-left"></span>Cardápio</a><span class="font-extrabold text-primary">Seu pedido</span><span class="w-24"></span></div></header>
+<main class="container mx-auto max-w-6xl px-4 py-8">
+  <h1 class="text-3xl font-extrabold md:text-5xl">Revise e finalize</h1>
+  <p class="mt-2 text-muted-foreground">Confira os itens antes de enviar para a Bread King Palhoça.</p>
+  <div class="mt-8 grid gap-10 lg:grid-cols-[1fr_420px]">
+    <section>
+      <div class="mb-4 flex items-center justify-between"><h2 id="itens-titulo" class="text-xl font-extrabold">Itens (0)</h2><button type="button" id="limpar" class="inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 gap-2 text-sm hover:bg-accent h-9 rounded-md px-3 text-destructive hover:text-destructive"><span data-icone="trash2"></span>Limpar</button></div>
+      <div id="itens" class="space-y-3"></div>
+      <a class="inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 gap-2 rounded-md text-sm border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 mt-5" href="cardapio.html"><span data-icone="plus"></span>Continuar comprando</a>
+    </section>
+    <section class="lg:sticky lg:top-24 lg:self-start"><div id="resumo" class="rounded-md border border-border bg-card p-5 md:p-6"></div></section>
+  </div>
+</main>
+</div>
+<script>document.querySelectorAll("[data-icone]").forEach(function(s){s.outerHTML=icone(s.dataset.icone,s.dataset.cls||"h-4 w-4");});</script>
+</body>
+</html>

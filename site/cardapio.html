@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="author" content="Bread King Palhoça"/><link rel="icon" type="image/png" href="imagens/marca/logo-bread-king-CVrHv7_B.png"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/><link rel="stylesheet" href="estilos/referencia.css"/><link rel="stylesheet" href="estilos/extra.css"/><script src="dados/unidade.js"></script><script src="dados/catalogo.js"></script><script src="js/icones.js"></script><script src="js/comum.js"></script>
+<title>Cardápio Completo | Bread King Palhoça</title>
+<meta name="description" content="Cardápio completo da Bread King Palhoça. Escolha, adicione ao carrinho e finalize pelo WhatsApp."/>
+<script src="js/cardapio.js"></script>
+</head>
+<body>
+<div class="min-h-screen bg-background">
+<header class="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border"><div class="container mx-auto px-4 py-3"><div class="flex items-center justify-between"><a class="flex items-center gap-3 text-foreground hover:text-primary transition-colors" href="index.html"><span data-icone="arrow-left" data-cls="h-5 w-5"></span><span class="font-semibold">Voltar</span></a><h1 class="text-lg font-bold text-primary">Cardápio Completo</h1><div class="w-24"></div></div></div></header>
+<main>
+<section class="bg-background" id="cardapio">
+  <div class="border-y border-border bg-card py-12 md:py-16"><div class="container mx-auto px-4 text-center">
+    <div class="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"><span data-icone="shopping-bag" data-cls="h-6 w-6"></span></div>
+    <h2 class="text-4xl font-extrabold md:text-6xl">Cardápio Bread King</h2>
+    <p class="mx-auto mt-3 max-w-2xl text-muted-foreground">Escolha seus favoritos, adicione ao carrinho e finalize pelo WhatsApp.</p>
+    <div class="relative mx-auto mt-7 max-w-xl"><span data-icone="search" data-cls="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"></span><input id="busca" type="search" class="flex w-full border border-input px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm h-12 rounded-md bg-background pl-12 pr-12" placeholder="Buscar no cardápio"/></div>
+  </div></div>
+  <nav aria-label="Categorias do cardápio" class="top-[57px] sticky z-30 border-b border-border bg-background/95 backdrop-blur-md"><div id="nav-categorias" class="container mx-auto flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide"></div></nav>
+  <div class="container mx-auto px-4 pb-24" id="categorias"></div>
+</section>
+</main>
+<footer class="footer-gradient text-white"></footer>
+</div>
+<script>document.querySelectorAll("[data-icone]").forEach(function(s){s.outerHTML=icone(s.dataset.icone,s.dataset.cls||"h-5 w-5");});</script>
+</body>
+</html>
