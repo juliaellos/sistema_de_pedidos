@@ -18,17 +18,17 @@
 
   // ---------- carrinho (localStorage) ----------
   const CHAVE = "bk_carrinho_" + U.nome.toLowerCase();
-  const porId = {};
-  (window.CATALOGO || []).forEach((p) => (porId[p.id] = p));
+  const porId = new Proxy({}, { get: (_, id) => BK.produto(id) });
   function ler() { try { return JSON.parse(localStorage.getItem(CHAVE) || "{}"); } catch (e) { return {}; } }
   function gravar(c) { localStorage.setItem(CHAVE, JSON.stringify(c)); document.dispatchEvent(new CustomEvent("carrinho:mudou")); }
   window.Carrinho = {
-    itens() { const c = ler(); return Object.keys(c).filter((id) => porId[id] && c[id] > 0).map((id) => ({ produto: porId[id], quantidade: c[id] })); },
+    itens() { const c = ler(); return Object.keys(c).filter((id) => porId[id] && porId[id].ativo !== false && c[id] > 0).map((id) => ({ produto: porId[id], quantidade: c[id] })); },
     quantidade(id) { return ler()[id] || 0; },
     definir(id, q) { const c = ler(); q = Math.max(0, Math.min(99, Math.floor(Number(q) || 0))); if (q === 0) delete c[id]; else c[id] = q; gravar(c); },
     adicionar(id, q) { this.definir(id, this.quantidade(id) + (q || 1)); },
     remover(id) { this.definir(id, 0); },
     limpar() { gravar({}); },
+    limparSilencioso() { localStorage.setItem(CHAVE, "{}"); },
     totalItens() { return this.itens().reduce((s, i) => s + i.quantidade, 0); },
     subtotal() { return this.itens().reduce((s, i) => s + i.quantidade * i.produto.preco, 0); }
   };
@@ -57,32 +57,44 @@
   }
   window.atualizarBarraCarrinho = barra;
 
-  // ---------- botão flutuante do WhatsApp ----------
+  // ---------- botão flutuante do WhatsApp (logo oficial, discreto) ----------
+  window.LOGO_WHATS = '<svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16.004 3C8.84 3 3.01 8.83 3.01 15.99c0 2.83.9 5.5 2.6 7.76L3.9 29l5.45-1.68a12.95 12.95 0 0 0 6.65 1.82c7.16 0 12.99-5.83 12.99-12.99S23.17 3 16.004 3zm0 23.72c-2.2 0-4.34-.63-6.2-1.83l-.44-.27-3.23 1 1.02-3.15-.29-.47a10.7 10.7 0 0 1-1.66-5.7c0-5.95 4.85-10.8 10.8-10.8s10.8 4.85 10.8 10.8-4.85 10.82-10.8 10.82zm5.93-8.09c-.33-.16-1.93-.95-2.22-1.06-.3-.11-.52-.16-.73.16-.22.33-.84 1.06-1.03 1.28-.19.22-.38.24-.7.08-.33-.16-1.38-.51-2.62-1.62-.97-.86-1.62-1.93-1.81-2.26-.19-.33-.02-.5.14-.66.15-.15.33-.38.49-.57.16-.19.22-.33.33-.54.11-.22.05-.41-.03-.57-.08-.16-.73-1.76-1-2.41-.26-.63-.53-.55-.73-.56h-.62c-.22 0-.57.08-.87.41-.3.33-1.14 1.11-1.14 2.71s1.17 3.15 1.33 3.37c.16.22 2.3 3.51 5.57 4.92.78.34 1.39.54 1.86.69.78.25 1.49.21 2.05.13.63-.09 1.93-.79 2.2-1.55.27-.76.27-1.41.19-1.55-.08-.14-.3-.22-.62-.38z"/></svg>';
   window.botaoWhatsFlutuante = function () {
     const a = document.createElement("a");
-    a.href = linkWhats("Olá! Vim pelo site da " + U.nomeCompleto + ".");
-    a.target = "_blank"; a.rel = "noopener";
-    a.setAttribute("aria-label", "Fale conosco pelo WhatsApp");
-    a.className = "fixed bottom-6 left-6 z-50 flex items-center justify-center w-16 h-16 rounded-full bg-[#25D366] hover:bg-[#20BD5A] text-white shadow-2xl shadow-[#25D366]/40 transition-colors duration-300";
-    a.innerHTML = '<span class="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-40"></span><span class="absolute inset-0 rounded-full bg-[#25D366] animate-pulse opacity-30"></span>' + icone("message-circle", "h-7 w-7 relative");
+    a.href = linkWhats("Olá! Quero fazer um pedido ou tirar uma dúvida com a " + U.nomeCompleto + ".");
+    a.target = "_blank"; a.rel = "noopener"; a.className = "whats-flutuante";
+    a.setAttribute("aria-label", "Fale com a loja pelo WhatsApp");
+    a.innerHTML = LOGO_WHATS + "<span>Fale com a loja</span>";
     document.body.appendChild(a);
   };
+
+  // ---------- cabeçalho do site ----------
+  window.renderTopo = function (el, opts) {
+    opts = opts || {};
+    el.className = "topo-site"; 
+    el.innerHTML = '<div class="container mx-auto flex h-16 items-center justify-between gap-3 px-4">' +
+      (opts.voltar ? '<a class="flex items-center gap-2 font-bold text-foreground hover:text-primary" href="' + opts.voltar + '">' + icone("arrow-left", "h-5 w-5") + "<span>" + esc(opts.voltarRotulo || "Voltar") + "</span></a>" : "") +
+      '<a class="marca" href="index.html"><img src="imagens/marca/logo-bread-king-CVrHv7_B.png" alt="Bread King"/><span>' + (opts.titulo ? esc(opts.titulo) : "Bread King") + "<small>" + esc(U.nome) + " · delivery</small></span></a>" +
+      '<a class="link-carrinho" href="pedido.html" id="link-carrinho">' + icone("shopping-bag", "h-4 w-4") + '<span class="hidden sm:inline">Pedido</span><span class="n">' + Carrinho.totalItens() + "</span></a></div>";
+  };
+  function atualizarLinkCarrinho() { const n = document.querySelector("#link-carrinho .n"); if (n) n.textContent = Carrinho.totalItens(); }
 
   // ---------- rodapé ----------
   window.renderRodape = function (el) {
     el.innerHTML = '<div class="container mx-auto px-4 py-16"><div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12">' +
       '<div class="lg:col-span-2"><img alt="Bread King" class="h-16 mb-4" src="imagens/marca/logo-bread-king-CVrHv7_B.png"/>' +
-      '<p class="text-white/70 max-w-md mb-6">A primeira padaria de supercongelados do Brasil. Tradição artesanal com a praticidade que você precisa.</p>' +
+      '<p class="text-white/70 max-w-md mb-6">A primeira padaria de supercongelados do Brasil.</p>' +
       '<div class="flex gap-4">' +
       '<a class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors" href="' + U.instagram + '" target="_blank" rel="noopener" aria-label="Instagram">' + icone("instagram", "h-5 w-5") + "</a>" +
-      '<a class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors" href="' + linkWhats() + '" target="_blank" rel="noopener" aria-label="WhatsApp">' + icone("phone", "h-5 w-5") + "</a>" +
+      '<a class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors" href="' + linkWhats() + '" target="_blank" rel="noopener" aria-label="WhatsApp"><span class="h-5 w-5">' + LOGO_WHATS + "</span></a>" +
       '<a class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors" href="mailto:' + U.email + '" aria-label="E-mail">' + icone("mail", "h-5 w-5") + "</a></div></div>" +
       '<div><h4 class="font-bold text-lg mb-4">Links Rápidos</h4><ul class="space-y-3">' +
-      '<li><a class="text-white/70 hover:text-white transition-colors" href="index.html#porque">Por que Bread King?</a></li>' +
-      '<li><a class="text-white/70 hover:text-white transition-colors" href="index.html#cardapio">Cardápio</a></li>' +
-      '<li><a class="text-white/70 hover:text-white transition-colors" href="index.html#lojas">Nossa Loja</a></li></ul></div>' +
+      '<li><a class="text-white/70 hover:text-white transition-colors" href="index.html">Cardápio</a></li>' +
+      '<li><a class="text-white/70 hover:text-white transition-colors" href="sobre.html">Sobre nós</a></li>' +
+      '<li><a class="text-white/70 hover:text-white transition-colors" href="sobre.html#lojas">Nossa Loja</a></li>' +
+      '<li><a class="text-white/70 hover:text-white transition-colors" href="acompanhamento.html">Acompanhar pedido</a></li></ul></div>' +
       '<div><h4 class="font-bold text-lg mb-4">Contato</h4><ul class="space-y-4">' +
-      '<li class="flex items-start gap-3">' + icone("message-circle", "h-5 w-5 text-[#25D366] mt-0.5") + '<div><p class="font-medium">WhatsApp</p><a class="text-white/70 hover:text-white transition-colors" href="' + linkWhats() + '" target="_blank" rel="noopener">' + U.whatsappFormatado + "</a></div></li>" +
+      '<li class="flex items-start gap-3"><span class="h-5 w-5 text-[#25D366] mt-0.5 shrink-0">' + LOGO_WHATS + '</span><div><p class="font-medium">WhatsApp</p><a class="text-white/70 hover:text-white transition-colors" href="' + linkWhats() + '" target="_blank" rel="noopener">' + U.whatsappFormatado + "</a></div></li>" +
       '<li class="flex items-start gap-3">' + icone("map-pin", "h-5 w-5 text-primary mt-0.5") + '<div><p class="font-medium">Unidade</p><p class="text-white/70">' + esc(U.endereco) + "<br/>" + esc(U.bairro + ", " + U.cidade) + "</p></div></li></ul></div></div>" +
       '<div class="h-px bg-white/10 my-8"></div>' +
       '<div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-white/50"><p>© ' + new Date().getFullYear() + " " + esc(U.nomeCompleto) + '. Todos os direitos reservados.</p><p class="flex items-center gap-1">Feito com ' + icone("heart", "h-4 w-4 text-primary fill-primary") + " em " + esc(U.nome) + "</p></div></div>";
@@ -100,10 +112,11 @@
       '<a class="' + BTN + ' text-primary-foreground h-9 rounded-md px-3 flex-1 bg-green-600 hover:bg-green-700" href="' + linkWhats() + '" target="_blank" rel="noopener">' + icone("message-circle") + "WhatsApp</a></div></div></div>";
   };
 
-  document.addEventListener("carrinho:mudou", barra);
+  document.addEventListener("carrinho:mudou", () => { barra(); atualizarLinkCarrinho(); });
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-unidade]").forEach((e) => { e.textContent = U[e.dataset.unidade] || ""; });
     document.querySelectorAll("[data-whats-href]").forEach((e) => { e.href = linkWhats(e.dataset.whatsHref || ""); });
+    const t = document.getElementById("topo"); if (t) renderTopo(t, { voltar: t.dataset.voltar, voltarRotulo: t.dataset.voltarRotulo, titulo: t.dataset.titulo });
     const f = document.querySelector("footer.footer-gradient"); if (f) renderRodape(f);
     const l = document.getElementById("loja-card"); if (l) renderLoja(l);
     if (!document.body.dataset.semWhats) botaoWhatsFlutuante();

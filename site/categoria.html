@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="author" content="Bread King Palhoça"/><link rel="icon" type="image/png" href="imagens/marca/logo-bread-king-CVrHv7_B.png"/><link rel="stylesheet" href="estilos/fontes.css"/><link rel="stylesheet" href="estilos/referencia.css"/><link rel="stylesheet" href="estilos/tema.css"/><link rel="stylesheet" href="estilos/extra.css"/><script src="dados/unidade.js"></script><script src="dados/catalogo.js"></script><script src="js/banco.js"></script><script src="js/icones.js"></script><script src="js/comum.js"></script>
+<title>Categoria | Bread King Palhoça</title>
+<script src="js/cardapio.js"></script>
+</head>
+<body data-pagina="categoria">
+<div class="min-h-screen bg-background">
+<header id="topo" data-voltar="index.html" data-voltar-rotulo="Cardápio"></header>
+<main class="container mx-auto px-4 pb-24">
+  <div class="py-8 md:py-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div><p class="eyebrow mb-1">Cardápio</p><h1 id="titulo-categoria" class="text-3xl font-extrabold md:text-5xl">Categoria</h1><p id="sub-categoria" class="mt-1 text-muted-foreground"></p></div>
+    <div class="relative w-full md:max-w-xs"><span data-icone="search" data-cls="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></span><input id="busca" type="search" class="flex w-full border border-input px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring h-11 rounded-full bg-background pl-11" placeholder="Buscar nesta lista"/></div>
+  </div>
+  <div id="categorias"></div>
+</main>
+<footer class="footer-gradient text-white"></footer>
+</div>
+<script>document.querySelectorAll("[data-icone]").forEach(function(s){s.outerHTML=icone(s.dataset.icone,s.dataset.cls||"h-5 w-5");});</script>
+</body>
+</html>

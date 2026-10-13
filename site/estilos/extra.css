@@ -31,3 +31,5 @@
 .campo-erro{border-color:#dc2626!important}
 /* Loja sem foto: fallback com logo */
 .loja-fallback{display:flex;align-items:center;justify-content:center;height:100%;width:100%;background:linear-gradient(135deg,#f5ecd4,#faf7ee)}
+/* aviso de pedido recebido (verde WhatsApp do manual) */
+.bg-\[\#DDF1CF\]{background:#DDF1CF}.border-\[\#b7e0a3\]{border-color:#b7e0a3}.text-\[\#2F7D45\]{color:#2F7D45}

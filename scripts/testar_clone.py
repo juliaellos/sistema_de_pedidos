@@ -1,58 +1,50 @@
-"""Abre o clone local (file://) no Chromium, roda o fluxo completo e salva capturas em tmp/."""
-import time, json, sys
+"""Testa o site (file://) ponta a ponta: cardápio, categoria, pedido com pagamento, acompanhamento e painel admin. Capturas em tmp/."""
+import time, json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 RAIZ=Path(__file__).resolve().parent.parent; SITE=RAIZ/"site"; OUT=RAIZ/"tmp"; OUT.mkdir(exist_ok=True)
 erros=[]
+def rolar(pg): pg.evaluate("async()=>{for(let y=0;y<document.body.scrollHeight;y+=500){window.scrollTo(0,y);await new Promise(r=>setTimeout(r,70));} window.scrollTo(0,0);}"); time.sleep(.8)
 with sync_playwright() as p:
     b=p.chromium.launch(); ctx=b.new_context(viewport={"width":1440,"height":900}); pg=ctx.new_page()
-    pg.on("console", lambda m: erros.append(m.text) if m.type=="error" else None)
+    pg.on("console", lambda m: erros.append(m.text) if m.type=="error" and "ERR_FILE_NOT_FOUND" not in m.text else None)
     pg.on("pageerror", lambda e: erros.append(str(e)))
-    pg.goto((SITE/"index.html").as_uri()); time.sleep(2)
-    pg.evaluate("async()=>{for(let y=0;y<document.body.scrollHeight;y+=500){window.scrollTo(0,y);await new Promise(r=>setTimeout(r,80));} window.scrollTo(0,0);}"); time.sleep(1)
-    pg.screenshot(path=str(OUT/"clone-home.png"),full_page=True)
-    print("cards na home:", pg.locator("[data-card]").count())
-    # cardápio: quantidade no card
-    pg.goto((SITE/"cardapio.html").as_uri()); time.sleep(1.5)
-    pg.locator('[data-stepper] [data-acao="mais"]').first.click(); pg.locator('[data-stepper] [data-acao="mais"]').first.click()
-    pg.locator("[data-add]").first.click(); time.sleep(0.5)
-    pg.locator("[data-add]").nth(3).click(); time.sleep(0.5)
-    pg.screenshot(path=str(OUT/"clone-cardapio-add.png"))
-    pg.locator("[data-abrir]").nth(4).click(); time.sleep(0.6); pg.screenshot(path=str(OUT/"clone-modal.png"))
-    pg.locator("[data-m='1']").click(); pg.locator("[data-madd]").click(); time.sleep(0.5)
-    pg.fill("#busca","pão de queijo"); time.sleep(0.5); pg.screenshot(path=str(OUT/"clone-busca.png")); pg.fill("#busca",""); time.sleep(0.4)
-    print("barra:", pg.locator("#barra-carrinho").inner_text().replace("\n"," | "))
-    # pedido
-    pg.goto((SITE/"pedido.html").as_uri()); time.sleep(1.2)
-    pg.screenshot(path=str(OUT/"clone-pedido-vazio-dados.png"),full_page=True)
+    pg.goto((SITE/"index.html").as_uri()); time.sleep(1.5); pg.evaluate("()=>localStorage.clear()"); pg.reload(); time.sleep(1.5); rolar(pg)
+    pg.screenshot(path=str(OUT/"1-cardapio.png"),full_page=True)
+    print("fontes:", pg.evaluate("()=>[getComputedStyle(document.querySelector('h1')).fontFamily, getComputedStyle(document.body).fontFamily, document.fonts.check('700 20px Rubik'), document.fonts.check('400 16px \"Nunito Sans\"')]"))
+    print("secoes:", pg.evaluate("()=>[...document.querySelectorAll('[data-category]')].map(e=>e.id)"))
+    pg.locator('[data-stepper] [data-acao="mais"]').first.click(); pg.locator("[data-add]").first.click(); time.sleep(.4); pg.locator("[data-add]").nth(7).click(); time.sleep(.4)
+    pg.screenshot(path=str(OUT/"2-cardapio-add.png"))
+    pg.locator(".btn-ver-todos").nth(1).click(); time.sleep(1.2); pg.screenshot(path=str(OUT/"3-categoria.png"),full_page=True); print("categoria:", pg.url.split("?")[-1], pg.locator("[data-card]").count())
+    pg.goto((SITE/"pedido.html").as_uri()); time.sleep(1)
     pg.fill('[data-campo="nome"]',"Teste Clone"); pg.fill('[data-campo="email"]',"teste@exemplo.com"); pg.fill('[data-campo="telefone"]',"48988475389")
-    pg.select_option('[data-campo="bairro"]',"Pedra Branca"); time.sleep(0.3)
-    pg.fill('[data-campo="endereco"]',"Rua Exemplo, 123, apto 4")
-    pg.fill("[data-cupom]","bemvindo10"); pg.click("[data-aplicar-cupom]"); time.sleep(0.4)
-    pg.screenshot(path=str(OUT/"clone-pedido-preenchido.png"),full_page=True)
-    print("enviar desabilitado antes de pagar:", pg.locator("[data-enviar]").is_disabled())
-    # cartão recusado
-    pg.click('[data-metodo="cartao"]'); pg.fill('[data-c="numero"]',"4000000000000002"); pg.fill('[data-c="nome"]',"TESTE"); pg.fill('[data-c="validade"]',"1230"); pg.fill('[data-c="cvv"]',"123"); pg.click("[data-cartao-pagar]"); time.sleep(0.3)
-    print("erro cartão:", pg.locator("[data-cartao-erro]").inner_text())
-    pg.screenshot(path=str(OUT/"clone-cartao-recusado.png"),full_page=True)
-    # pix aprovado
-    pg.click('[data-metodo="pix"]'); time.sleep(0.3); pg.screenshot(path=str(OUT/"clone-pix.png"),full_page=True)
-    pg.click("[data-pix-pagar]"); time.sleep(0.5); pg.screenshot(path=str(OUT/"clone-pix-aguardando.png"),full_page=True); time.sleep(4.5)
-    print("enviar habilitado depois de pagar:", not pg.locator("[data-enviar]").is_disabled())
-    pg.screenshot(path=str(OUT/"clone-pago.png"),full_page=True)
+    pg.select_option('[data-campo="bairro"]',"Pedra Branca"); time.sleep(.3); pg.fill('[data-campo="endereco"]',"Rua Exemplo, 123")
+    pg.fill("[data-cupom]","bemvindo10"); pg.click("[data-aplicar-cupom]"); time.sleep(.4); pg.screenshot(path=str(OUT/"4-pedido.png"),full_page=True)
+    pg.click("[data-pix-pagar]"); time.sleep(5.5)
+    print("depois do pix:", pg.url.split("/")[-1]); pg.screenshot(path=str(OUT/"5-acompanhamento.png"),full_page=True)
+    pedidos=pg.evaluate("()=>JSON.parse(localStorage.getItem('bk_db_pedidos')||'[]')"); print("pedidos no banco:", len(pedidos), pedidos[-1]["numero"] if pedidos else None, "carrinho:", pg.evaluate("()=>localStorage.getItem('bk_carrinho_palhoça')"))
+    # recomendados aparecem na home
+    pg.goto((SITE/"index.html").as_uri()); time.sleep(1.5); print("secoes com cliente:", pg.evaluate("()=>[...document.querySelectorAll('[data-category]')].map(e=>e.id).slice(0,3)")); pg.screenshot(path=str(OUT/"6-cardapio-recomendados.png"))
+    pg.goto((SITE/"sobre.html").as_uri()); time.sleep(1.2); rolar(pg); pg.screenshot(path=str(OUT/"7-sobre.png"),full_page=True)
+    # admin
+    pg.goto((SITE/"admin/index.html").as_uri()); time.sleep(1); pg.fill("#senha","breadking"); pg.click("#form-login button"); time.sleep(.8); pg.screenshot(path=str(OUT/"8-admin-pedidos.png"),full_page=True)
+    pg.click("[data-pedido]"); time.sleep(.6); pg.screenshot(path=str(OUT/"9-admin-pedido.png"),full_page=True)
     pg.evaluate("()=>{window.__urls=[];window.open=(u)=>{window.__urls.push(u);return null;}}")
-    pg.click("[data-enviar]"); time.sleep(0.5)
-    urls=pg.evaluate("()=>window.__urls"); 
-    from urllib.parse import unquote
-    print("URL:", urls[0][:60] if urls else None); print(unquote(urls[0].split("text=")[1]) if urls else "SEM URL")
-    print("pedidos gravados:", pg.evaluate("()=>JSON.parse(localStorage.getItem('bk_pedidos_palhoça')||'[]').length"))
-    # retirada
-    pg.click('[data-modalidade="retirada"]'); time.sleep(0.3); pg.screenshot(path=str(OUT/"clone-retirada.png"),full_page=True)
-    # mobile
+    pg.click('[data-status="preparo"]'); time.sleep(.4); pg.click('[data-status="saiu"]'); time.sleep(.6)
+    from urllib.parse import unquote; urls=pg.evaluate("()=>window.__urls"); print("msg automatica:", unquote(urls[0].split("text=")[1]) if urls else "NENHUMA")
+    pg.screenshot(path=str(OUT/"10-admin-status.png"),full_page=True); pg.keyboard.press("Escape"); pg.click("[data-fechar]"); time.sleep(.3)
+    pg.click('[data-tela="config"]'); time.sleep(.5); pg.click("[data-exemplos]"); time.sleep(.8)
+    pg.click('[data-tela="clientes"]'); time.sleep(.5); pg.screenshot(path=str(OUT/"11-admin-clientes.png"),full_page=True)
+    pg.click('[data-tela="produtos"]'); time.sleep(.5); pg.screenshot(path=str(OUT/"12-admin-produtos.png"))
+    pg.click("[data-editar]"); time.sleep(.5); pg.fill('#fp [name="preco"]',"21.90"); pg.click("#fp .btn.primario"); time.sleep(.5)
+    print("preco editado:", pg.evaluate("()=>BK.produtos()[0].preco"))
+    pg.click('[data-tela="segmentos"]'); time.sleep(.5); pg.click("[data-pronta]"); time.sleep(.5); pg.screenshot(path=str(OUT/"13-admin-segmentos.png"),full_page=True)
+    pg.click('[data-tela="config"]'); time.sleep(.5); pg.screenshot(path=str(OUT/"14-admin-config.png"),full_page=True)
+    # acompanhamento reflete status
+    pg.goto((SITE/"acompanhamento.html").as_uri()+"?n="+pedidos[-1]["numero"]); time.sleep(1); pg.screenshot(path=str(OUT/"15-acompanhamento-saiu.png"),full_page=True)
+    print("status na pagina:", pg.locator("h1").first.inner_text())
     m=b.new_context(viewport={"width":390,"height":844},device_scale_factor=2,is_mobile=True); mp=m.new_page()
-    mp.goto((SITE/"index.html").as_uri()); time.sleep(1.5); mp.evaluate("async()=>{for(let y=0;y<document.body.scrollHeight;y+=500){window.scrollTo(0,y);await new Promise(r=>setTimeout(r,60));} window.scrollTo(0,0);}"); time.sleep(0.8)
-    mp.screenshot(path=str(OUT/"clone-home-mobile.png"),full_page=True)
-    mp.goto((SITE/"pedido.html").as_uri()); time.sleep(1); mp.screenshot(path=str(OUT/"clone-pedido-mobile.png"),full_page=True)
-    mp.goto((SITE/"404.html").as_uri()); time.sleep(0.5); mp.screenshot(path=str(OUT/"clone-404-mobile.png"))
+    mp.goto((SITE/"index.html").as_uri()); time.sleep(1.5); rolar(mp); mp.screenshot(path=str(OUT/"16-mobile-cardapio.png"),full_page=True)
+    mp.goto((SITE/"admin/index.html").as_uri()); time.sleep(.8); mp.screenshot(path=str(OUT/"17-mobile-admin-login.png"))
     b.close()
 print("ERROS:", json.dumps(erros, ensure_ascii=False, indent=1) if erros else "nenhum")

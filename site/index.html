@@ -1,70 +1,29 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="author" content="Bread King Palhoça"/><link rel="icon" type="image/png" href="imagens/marca/logo-bread-king-CVrHv7_B.png"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/><link rel="stylesheet" href="estilos/referencia.css"/><link rel="stylesheet" href="estilos/extra.css"/><script src="dados/unidade.js"></script><script src="dados/catalogo.js"></script><script src="js/icones.js"></script><script src="js/comum.js"></script>
-<title>Bread King Palhoça | Cardápio Completo</title>
-<meta name="description" content="Conheça o cardápio completo da Bread King Palhoça e faça seu pedido pelo WhatsApp."/>
-<meta property="og:title" content="Bread King Palhoça | Cardápio Completo"/><meta property="og:description" content="Conheça o cardápio completo da Bread King Palhoça e faça seu pedido pelo WhatsApp."/><meta property="og:type" content="website"/><meta property="og:image" content="imagens/marca/hero-leticia.webp"/>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="author" content="Bread King Palhoça"/><link rel="icon" type="image/png" href="imagens/marca/logo-bread-king-CVrHv7_B.png"/><link rel="stylesheet" href="estilos/fontes.css"/><link rel="stylesheet" href="estilos/referencia.css"/><link rel="stylesheet" href="estilos/tema.css"/><link rel="stylesheet" href="estilos/extra.css"/><script src="dados/unidade.js"></script><script src="dados/catalogo.js"></script><script src="js/banco.js"></script><script src="js/icones.js"></script><script src="js/comum.js"></script>
+<title>Bread King Palhoça | Cardápio e delivery</title>
+<meta name="description" content="Cardápio completo da Bread King Palhoça. Escolha, pague no site e acompanhe seu pedido."/>
+<meta property="og:title" content="Bread King Palhoça | Cardápio e delivery"/><meta property="og:description" content="Pães, salgados, pizzas e confeitaria congelados, prontos em minutos."/><meta property="og:type" content="website"/>
 <script src="js/cardapio.js"></script>
 </head>
 <body>
 <div class="min-h-screen bg-background">
-<section class="hero-split min-h-screen relative overflow-hidden">
-  <div class="absolute top-0 left-0 right-0 w-full h-1.5 bg-primary z-10"></div>
-  <div class="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary/5"></div>
-  <div class="absolute top-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
-  <div class="absolute bottom-20 left-10 w-80 h-80 bg-secondary/10 rounded-full blur-3xl"></div>
-  <div class="relative z-10 min-h-screen flex items-center"><div class="container mx-auto px-4 py-20"><div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-    <div class="order-2 lg:order-1 flex justify-center lg:justify-start"><div class="hero-photo-frame"><img alt="Letícia com pão Bread King" class="w-full h-full object-cover" fetchpriority="high" src="imagens/marca/hero-leticia.webp" width="768" height="1152"/><div class="hero-photo-corner top-0 left-0"></div><div class="hero-photo-corner bottom-0 right-0 rotate-180"></div></div></div>
-    <div class="order-1 lg:order-2 text-center lg:text-left">
-      <div class="mb-8"><img alt="Bread King" class="h-16 md:h-20 object-contain mx-auto lg:mx-0 drop-shadow-lg" src="imagens/marca/logo-bread-king-CVrHv7_B.png"/></div>
-      <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6"><span class="block text-foreground">Tenha uma</span><span class="block text-primary">Padaria Completa</span><span class="block bread-gradient-text-gold">dentro da sua casa</span></h1>
-      <p class="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-10">Mais de 200 produtos prontos em minutos</p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center">
-        <button type="button" id="ver-cardapio" class="inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md btn-primary-gradient h-14 px-8 text-lg gap-3 w-full sm:w-auto bread-glow-red"><span data-icone="utensils-crossed"></span>Ver Cardápio</button>
-        <a data-whats-href="Olá! Vim pelo site da Bread King Palhoça." target="_blank" rel="noopener" class="inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 rounded-md h-14 px-8 text-lg bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,40%)] text-white gap-3 w-full sm:w-auto bread-glow-green"><span data-icone="message-circle"></span>WhatsApp</a>
-        <button type="button" id="nossa-loja" class="inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md btn-outline-premium h-14 px-8 text-lg gap-3 w-full sm:w-auto"><span data-icone="map-pin"></span>Nossa Loja</button>
-      </div>
-    </div>
-  </div></div></div>
-  <div class="absolute bottom-8 left-1/2 -translate-x-1/2"><button type="button" id="explorar" class="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary transition-colors"><span class="text-sm font-medium">Explorar</span><span data-icone="chevron-down" class="animate-scroll-down"></span></button></div>
-</section>
-
+<header id="topo" data-titulo="Bread King"></header>
+<main>
 <section class="bg-background" id="cardapio">
-  <div class="border-y border-border bg-card py-12 md:py-16"><div class="container mx-auto px-4 text-center">
-    <div class="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"><span data-icone="shopping-bag" data-cls="h-6 w-6"></span></div>
-    <h2 class="text-3xl font-extrabold md:text-5xl">Cardápio Bread King</h2>
-    <p class="mx-auto mt-3 max-w-2xl text-muted-foreground">Escolha seus favoritos, adicione ao carrinho e finalize pelo WhatsApp.</p>
-    <div class="relative mx-auto mt-7 max-w-xl"><span data-icone="search" data-cls="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"></span><input id="busca" type="search" class="flex w-full border border-input px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm h-12 rounded-md bg-background pl-12 pr-12" placeholder="Buscar no cardápio"/></div>
+  <div class="border-b border-border bg-card py-10 md:py-14"><div class="container mx-auto px-4 text-center">
+    <p class="eyebrow mb-3">Delivery e retirada · Palhoça</p>
+    <h1 class="text-4xl font-extrabold md:text-6xl">Cardápio Bread King</h1>
+    <p class="mx-auto mt-3 max-w-2xl text-muted-foreground">Mais de 100 produtos congelados, prontos em minutos. Escolha, pague no site e acompanhe seu pedido.</p>
+    <div class="relative mx-auto mt-7 max-w-xl"><span data-icone="search" data-cls="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"></span><input id="busca" type="search" class="flex w-full border border-input px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm h-12 rounded-full bg-background pl-12 pr-12" placeholder="Buscar no cardápio"/></div>
   </div></div>
-  <nav aria-label="Categorias do cardápio" class="top-0 sticky z-30 border-b border-border bg-background/95 backdrop-blur-md"><div id="nav-categorias" class="container mx-auto flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide"></div></nav>
-  <div class="container mx-auto px-4" id="categorias"></div>
+  <nav aria-label="Categorias do cardápio" class="top-16 sticky z-30 border-b border-border bg-background/95 backdrop-blur-md"><div id="nav-categorias" class="container mx-auto flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide"></div></nav>
+  <div class="container mx-auto px-4 pb-24" id="categorias"></div>
 </section>
-
-<section id="lojas" class="section-subtle py-20 lg:py-28 relative overflow-hidden"><div class="container mx-auto px-4">
-  <div class="text-center mb-12"><div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6"><span data-icone="map-pin" data-cls="h-4 w-4 text-primary"></span><span class="text-sm font-medium text-primary">Visite-nos</span></div>
-  <h2 class="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4">Conheça Nossa <span class="text-primary">Loja</span></h2>
-  <p class="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">Unidade em Palhoça para atender você melhor</p></div>
-  <div id="loja-card"></div>
-</div></section>
-
-<section id="porque" class="section-subtle py-24 lg:py-32 relative overflow-hidden">
-  <div class="absolute top-20 right-10 w-64 h-64 bg-secondary/5 rounded-full blur-3xl"></div><div class="absolute bottom-20 left-10 w-80 h-80 bg-primary/5 rounded-full blur-3xl"></div>
-  <div class="container mx-auto px-4 relative z-10">
-    <div class="text-center mb-20"><div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/20 mb-6"><span data-icone="sparkles" data-cls="h-4 w-4 text-secondary"></span><span class="text-sm font-medium text-secondary">Por que somos diferentes</span></div>
-    <h2 class="text-4xl md:text-6xl font-black mb-6">Por que <span class="text-primary">Bread King</span>?</h2>
-    <p class="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">Ultracongelamento é tecnologia. Ele ajuda a preservar textura, sabor e qualidade dos alimentos. Resultado: você tem praticidade sem abrir mão de uma experiência gostosa em casa.</p></div>
-    <div class="grid md:grid-cols-3 gap-8 mb-20">
-      <div class="feature-card text-center group"><div class="feature-card-icon mx-auto text-blue-500"><span data-icone="snowflake" data-cls="h-8 w-8"></span></div><h3 class="text-2xl font-bold mb-4 group-hover:text-primary transition-colors">Tecnologia</h3><p class="text-muted-foreground leading-relaxed">Ultracongelamento é tecnologia. Preserva textura, sabor e qualidade dos alimentos.</p></div>
-      <div class="feature-card text-center group"><div class="feature-card-icon mx-auto text-secondary"><span data-icone="package" data-cls="h-8 w-8"></span></div><h3 class="text-2xl font-bold mb-4 group-hover:text-primary transition-colors">Variedade</h3><p class="text-muted-foreground leading-relaxed">Mais de 200 produtos. Pães, doces e salgados para todos os momentos.</p></div>
-      <div class="feature-card text-center group"><div class="feature-card-icon mx-auto text-primary"><span data-icone="clock" data-cls="h-8 w-8"></span></div><h3 class="text-2xl font-bold mb-4 group-hover:text-primary transition-colors">Praticidade</h3><p class="text-muted-foreground leading-relaxed">Pronto quando você precisar. Assou, serviu, aproveitou.</p></div>
-    </div>
-    <div class="bread-card-premium p-8 md:p-12 relative overflow-hidden"><div class="flex flex-col md:flex-row items-center justify-center gap-8"><img alt="Terence" class="h-36 md:h-48 object-contain drop-shadow-xl" src="imagens/marca/mascote-terence-DsFvsyE-.png"/><div class="text-center md:text-left"><p class="text-3xl md:text-4xl font-black mb-3">Praticidade sem abrir mão da <span class="bread-gradient-text">qualidade</span>!</p><p class="text-lg text-muted-foreground">Produtos congelados que ficam perfeitos depois de assar. Experimente!</p></div></div></div>
-  </div>
-</section>
-
+</main>
 <footer class="footer-gradient text-white"></footer>
 </div>
-<script>document.querySelectorAll("[data-icone]").forEach(function(s){s.outerHTML=icone(s.dataset.icone,s.dataset.cls||(s.className?s.className+" h-4 w-4":"h-5 w-5"));});</script>
+<script>document.querySelectorAll("[data-icone]").forEach(function(s){s.outerHTML=icone(s.dataset.icone,s.dataset.cls||"h-5 w-5");});</script>
 </body>
 </html>

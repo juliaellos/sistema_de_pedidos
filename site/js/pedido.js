@@ -86,9 +86,7 @@
       (entrega ? '<div class="flex justify-between text-sm text-muted-foreground"><span>Taxa de entrega' + (estado.bairro ? " · " + esc(estado.bairro) : "") + "</span><span>" + (estado.bairro ? moeda(t.taxa) : "escolha o bairro") + "</span></div>" : "") +
       '<div class="flex justify-between text-xl font-extrabold"><span>Total</span><span>' + moeda(t.total) + "</span></div></div>" +
       '<div id="pagamento"></div>' +
-      '<p class="mb-3 mt-5 text-center text-xs text-muted-foreground" data-aviso></p>' +
-      '<button type="button" data-enviar class="' + B.base + ' px-4 py-2 h-14 w-full bg-whatsapp text-base text-whatsapp-foreground hover:bg-whatsapp/90"' + (pago ? "" : " disabled") + ">" + icone("message-circle", "h-5 w-5") + "Enviar pelo WhatsApp</button>" +
-      '<p class="mt-3 text-center text-xs text-muted-foreground">Seu pedido continuará salvo após abrir o WhatsApp.</p>';
+      '<p class="mb-1 mt-5 text-center text-xs text-muted-foreground" data-aviso></p>';
     renderPagamento();
     atualizarAviso();
   }
@@ -98,9 +96,7 @@
     const itens = Carrinho.totalItens() > 0;
     if (!itens) a.textContent = "Adicione itens ao pedido para continuar.";
     else if (!dadosOk()) a.textContent = estado.modalidade === "entrega" ? "Preencha os dados da entrega para liberar o pagamento." : "Preencha seus dados para liberar o pagamento.";
-    else if (!estado.pagamento) a.textContent = "Conclua o pagamento para enviar o pedido.";
-    else a.textContent = "Pagamento confirmado. Agora é só enviar o pedido.";
-    const btn = document.querySelector("[data-enviar]"); if (btn) btn.disabled = !(itens && dadosOk() && estado.pagamento);
+    else a.textContent = "Depois do pagamento você acompanha o pedido em tempo real.";
     const pg = document.getElementById("pagamento"); if (pg) pg.classList.toggle("opacity-50", !(itens && dadosOk()));
     pg && pg.querySelectorAll("button,input").forEach((b) => { if (!b.hasAttribute("data-livre")) b.disabled = !(itens && dadosOk()) || !!estado.pagamento; });
   }
@@ -152,16 +148,18 @@
   function confirmarPagamento(metodo) {
     const t = totais();
     estado.pagamento = { metodo, codigo: "BK-" + Date.now().toString(36).toUpperCase().slice(-6), valor: t.total, quando: new Date().toISOString() };
-    toast("Pagamento aprovado ✅", metodo + " de " + moeda(t.total) + " confirmado (simulação).");
-    renderResumo();
+    const pedido = registrarPedido();
+    Carrinho.limparSilencioso();
+    location.href = "acompanhamento.html?n=" + encodeURIComponent(pedido.numero) + "&novo=1";
   }
 
-  // ---------- registro local do pedido (semente do CRM) ----------
+  // ---------- registro do pedido no banco local e ida pro acompanhamento ----------
   function registrarPedido() {
-    const chave = "bk_pedidos_" + U.nome.toLowerCase();
-    let lista = []; try { lista = JSON.parse(localStorage.getItem(chave) || "[]"); } catch (e) {}
-    lista.push({ numero: estado.pagamento.codigo, quando: new Date().toISOString(), cliente: { nome: estado.nome, email: estado.email, telefone: estado.telefone }, modalidade: estado.modalidade, endereco: estado.endereco, bairro: estado.bairro, itens: Carrinho.itens().map((i) => ({ id: i.produto.id, nome: i.produto.nome, qtd: i.quantidade, preco: i.produto.preco })), cupom: estado.cupom, totais: totais(), pagamento: estado.pagamento, status: "pago" });
-    localStorage.setItem(chave, JSON.stringify(lista));
+    const numero = BK.novoNumero(); const agora = new Date().toISOString();
+    const pedido = { numero, quando: agora, cliente: { nome: estado.nome.trim(), email: estado.email.trim(), telefone: estado.telefone.trim() }, modalidade: estado.modalidade, endereco: estado.modalidade === "entrega" ? estado.endereco.trim() : "", bairro: estado.modalidade === "entrega" ? estado.bairro : "",
+      itens: Carrinho.itens().map((i) => ({ id: i.produto.id, nome: i.produto.nome, categoria: i.produto.categoria, qtd: i.quantidade, preco: i.produto.preco })), cupom: estado.cupom, totais: totais(), pagamento: estado.pagamento, status: "pago", historico: [{ status: "pago", quando: agora, obs: "Pagamento " + estado.pagamento.metodo + " (simulado)" }], mensagens: [] };
+    BK.salvarPedido(pedido);
+    return pedido;
   }
 
   // ---------- eventos ----------
@@ -172,7 +170,7 @@
       if (e.target.closest("[data-remover]")) Carrinho.remover(id);
       else { const q = e.target.closest("[data-q]"); if (q) Carrinho.definir(id, Carrinho.quantidade(id) + Number(q.dataset.q)); }
     });
-    document.getElementById("limpar").addEventListener("click", () => { if (Carrinho.totalItens() && confirm("Limpar todos os itens do pedido?")) Carrinho.limpar(); });
+    document.getElementById("limpar") && document.getElementById("limpar").addEventListener("click", () => { if (Carrinho.totalItens() && confirm("Limpar todos os itens do pedido?")) Carrinho.limpar(); });
     document.addEventListener("carrinho:mudou", () => { estado.pagamento = null; renderItens(); renderResumo(); });
 
     const res = document.getElementById("resumo");
@@ -208,12 +206,6 @@
         if (msg) { erro.textContent = msg; erro.classList.remove("hidden"); return; }
         const b = e.target.closest("[data-cartao-pagar]"); b.disabled = true; b.innerHTML = '<span class="h-4 w-4 rounded-full border-2 border-white/40 border-t-white girando"></span> Processando…';
         setTimeout(() => confirmarPagamento("Cartão final " + num.slice(-4)), 1800); return;
-      }
-      if (e.target.closest("[data-enviar]")) {
-        if (!(Carrinho.totalItens() && dadosOk() && estado.pagamento)) return;
-        registrarPedido();
-        window.open(linkWhats(mensagem()), "_blank");
-        toast("Pedido enviado pro WhatsApp", "Se a janela não abriu, libere pop-ups e clique de novo.");
       }
     });
     res.addEventListener("input", (e) => {

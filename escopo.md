@@ -1,8 +1,15 @@
 # Escopo — Sistema de delivery web Bread King (franqueados)
 
-**Versão:** 1.2 (aprovada) · **Data:** 13/10/2026 · **Dona do projeto:** Júlia y Castro (Y OS)
+**Versão:** 1.3 · **Data:** 13/10/2026 · **Dona do projeto:** Júlia y Castro (Y OS)
 **Referência visual e funcional:** breadkingsaopaulo.com.br (levantamento em `referencia/levantamento-site-atual.md`)
 **Primeira unidade:** Palhoça (SC) · **WhatsApp de teste:** +55 48 98847-5389
+
+Mudanças da v1.2 → v1.3 (revisão da Júlia em 13/10, à noite): cardápio vira a página principal e
+a home clonada vira "Sobre nós"; identidade própria (Rubik + Nunito Sans e paleta do manual Bread
+King, no lugar do visual Lovable); depois do pagamento o cliente vai pra uma tela de acompanhamento
+(sem enviar pedido pelo WhatsApp); "Ver todos" por categoria; seções "Mais pedidos" e "Recomendados
+pra você"; rodapé só com "A primeira padaria de supercongelados do Brasil."; botão de WhatsApp
+discreto com logo oficial; Etapa 2 pulada e **Etapa 3 (painel) entregue em modo simulação**.
 
 Mudanças da v1.0 → v1.1: catálogo e imagens clonados direto do site (sem depender de export);
 gateway vira simulação; site individual por franqueado; páginas de campanha fora; admin do
@@ -125,7 +132,9 @@ card mostra a quantidade no carrinho e permite ajustar ali. Indicador flutuante 
 
 ---
 
-## 6. Etapa 3 — CRM básico por unidade (direção)
+## 6. Etapa 3 — Painel da unidade (ENTREGUE em modo simulação, 13/10)
+
+Implementado em `site/admin/` sobre um banco local no navegador. Ver `site/README.md`.
 
 Painel web com login, um por unidade.
 

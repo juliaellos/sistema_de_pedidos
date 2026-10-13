@@ -1,0 +1,75 @@
+/* Tema Bread King (sobrepõe os tokens do CSS clonado). Fontes e cores do manual de marca:
+   vermelho #B8172E, dourado #D69A2D, creme #FBF5EC, café #2A1612. Rubik (títulos) + Nunito Sans (texto). */
+:root{
+  --background: 36 65% 96%;        /* #FBF5EC creme */
+  --foreground: 12 40% 12%;        /* #2A1612 café */
+  --card: 40 100% 99%;             /* #FFFDF9 */
+  --card-foreground: 12 40% 12%;
+  --popover: 40 100% 99%; --popover-foreground: 12 40% 12%;
+  --primary: 351 78% 41%;          /* #B8172E */
+  --primary-glow: 351 78% 48%;
+  --primary-foreground: 36 100% 97%;
+  --secondary: 40 67% 51%;         /* #D69A2D */
+  --secondary-glow: 40 70% 58%;
+  --secondary-foreground: 12 40% 12%;
+  --muted: 36 47% 89%;             /* #F4E7D3 trigo */
+  --muted-foreground: 16 15% 42%;  /* #7A655B */
+  --accent: 36 47% 92%;
+  --accent-foreground: 12 40% 12%;
+  --border: 36 45% 85%;            /* #EADCC6 */
+  --input: 36 45% 85%;
+  --ring: 351 78% 41%;
+  --radius: 1rem;
+}
+body{font-family:"Nunito Sans",system-ui,sans-serif;color:#2A1612}
+h1,h2,h3,h4,h5,h6,.font-display{font-family:Rubik,system-ui,sans-serif;letter-spacing:-.01em}
+.price-gold{color:#B8172E;font-family:Rubik,system-ui,sans-serif}
+/* sem textos com degradê animado */
+.bread-gradient-text,.bread-gradient-text-gold{animation:none;background:none;-webkit-text-fill-color:currentColor;color:#B8172E;font-weight:800}
+.bread-gradient-text-gold{color:#D69A2D}
+.btn-primary-gradient{background:#B8172E;box-shadow:0 6px 18px -6px rgba(184,23,46,.45)}
+.btn-primary-gradient:hover{background:#A3162A;box-shadow:0 10px 24px -8px rgba(184,23,46,.5);transform:translateY(-1px)}
+.bread-glow-red,.bread-glow-red:hover{box-shadow:none}
+.bread-glow-green,.bread-glow-green:hover{box-shadow:none}
+.badge-featured{background:#D69A2D;box-shadow:none}
+.feature-card-icon{background:#F4E7D3}
+.hero-split,.hero-section{background:#FBF5EC}
+.hero-photo-frame{border-radius:1.75rem;box-shadow:0 24px 60px -24px rgba(42,22,18,.35);border:4px solid #FFFDF9}
+.hero-photo-frame:before{background:linear-gradient(135deg,#B8172E,#D69A2D)}
+.section-subtle{background:#F4E7D3}
+.section-light{background:#FBF5EC}
+.footer-gradient{background:#2A1612}
+.product-card,.feature-card,.store-card,.bread-card-premium{border-radius:1.25rem;border:1px solid #EADCC6;box-shadow:0 2px 10px -4px rgba(42,22,18,.08)}
+.product-card:hover{transform:translateY(-4px);box-shadow:0 14px 30px -14px rgba(42,22,18,.25);border-color:#D69A2D}
+.bread-card-premium:before{background:linear-gradient(90deg,#B8172E,#D69A2D)}
+.animate-ping,.animate-pulse{animation:none}
+.rounded-md{border-radius:.75rem}
+/* cabeçalho do cardápio (nova home) */
+.topo-site{position:sticky;top:0;z-index:40;background:rgba(251,245,236,.94);backdrop-filter:blur(10px);border-bottom:1px solid #EADCC6}
+.topo-site .marca{display:flex;align-items:center;gap:.75rem;font-family:Rubik,sans-serif;font-weight:700;color:#2A1612}
+.topo-site .marca img{height:44px;width:44px;object-fit:contain}
+.topo-site .marca small{display:block;font-family:"Nunito Sans",sans-serif;font-weight:800;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:#B8172E}
+.link-carrinho{position:relative;display:inline-flex;align-items:center;gap:.5rem;height:2.75rem;padding:0 1rem;border-radius:999px;background:#B8172E;color:#FFF8EE;font-weight:700;font-size:.875rem}
+.link-carrinho .n{min-width:1.5rem;height:1.5rem;padding:0 .4rem;border-radius:999px;background:#FFF8EE;color:#B8172E;display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:900}
+.eyebrow{font-family:"Nunito Sans",sans-serif;font-weight:800;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#B8172E}
+.btn-ver-todos{display:inline-flex;align-items:center;gap:.35rem;height:2.25rem;padding:0 .9rem;border-radius:999px;border:1px solid #EADCC6;background:#FFFDF9;font-size:.8rem;font-weight:800;color:#B8172E;transition:all .2s}
+.btn-ver-todos:hover{border-color:#B8172E;background:#fff}
+.grade-produtos{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1rem}
+.grade-produtos>div{width:auto!important;max-width:none!important}
+/* botão flutuante do WhatsApp: discreto, logo oficial */
+.whats-flutuante{position:fixed;right:1.25rem;bottom:1.25rem;z-index:50;display:flex;align-items:center;gap:.5rem;height:3.25rem;padding:0 1.1rem 0 .85rem;border-radius:999px;background:#25D366;color:#fff;font-weight:800;font-size:.85rem;box-shadow:0 8px 24px -8px rgba(37,211,102,.6);transition:transform .2s,box-shadow .2s}
+.whats-flutuante:hover{transform:translateY(-2px);box-shadow:0 12px 28px -8px rgba(37,211,102,.7)}
+.whats-flutuante svg{width:1.6rem;height:1.6rem}
+.whats-flutuante span{max-width:0;overflow:hidden;white-space:nowrap;transition:max-width .3s}
+.whats-flutuante:hover span{max-width:12rem}
+@media(min-width:768px){.whats-flutuante span{max-width:12rem}}
+body:has(#barra-carrinho) .whats-flutuante{bottom:5.5rem}
+/* acompanhamento */
+.linha-tempo{position:relative;padding-left:2.25rem}
+.linha-tempo:before{content:"";position:absolute;left:.8rem;top:.5rem;bottom:.5rem;width:2px;background:#EADCC6}
+.etapa{position:relative;padding:.25rem 0 1.5rem}
+.etapa .bola{position:absolute;left:-2.25rem;top:.1rem;width:1.65rem;height:1.65rem;border-radius:999px;border:2px solid #EADCC6;background:#FFFDF9;display:flex;align-items:center;justify-content:center;color:#fff}
+.etapa.feita .bola{background:#B8172E;border-color:#B8172E}
+.etapa.atual .bola{background:#D69A2D;border-color:#D69A2D;box-shadow:0 0 0 6px rgba(214,154,45,.2)}
+.etapa .titulo{font-family:Rubik,sans-serif;font-weight:700}
+.etapa.pendente{opacity:.5}
