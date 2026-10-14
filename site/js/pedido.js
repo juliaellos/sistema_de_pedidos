@@ -47,9 +47,9 @@
 
   // Mensagem do pedido sem login (modelo aprovado em 13/10), com os dados do formulário rápido
   function mensagemSemLogin(d) {
-    const entrega = d.modalidade === "entrega"; const taxa = entrega ? ((U.taxasEntrega.find((x) => x.bairro === d.bairro) || {}).taxa || 0) : 0;
+    const entrega = d.modalidade === "entrega"; const taxa = 0;
     const L = ["Olá! Quero fazer um pedido na " + U.nomeCompleto + ".", "", "Unidade: " + U.nome, "Cliente: " + d.nome, "Telefone: " + d.telefone];
-    if (entrega) { L.push("Endereço para entrega: " + d.endereco); L.push("Bairro: " + d.bairro + (taxa ? " – Taxa de entrega: " + moeda(taxa).replace("\u00a0", " ") : "")); L.push("Modalidade: Entrega"); } else { if (d.endereco) L.push("Endereço: " + d.endereco + (d.bairro ? " – " + d.bairro : "")); L.push("Modalidade: Retirada na loja"); }
+    if (entrega) { L.push("Endereço para entrega: " + d.endereco); L.push("Modalidade: Entrega"); } else { if (d.endereco) L.push("Endereço: " + d.endereco); L.push("Modalidade: Retirada na loja"); }
     L.push("", "Pedido:");
     Carrinho.itens().forEach((i) => L.push("•  " + i.produto.nome.trim() + "  – Qtd " + i.quantidade + " – " + moeda(i.produto.preco * i.quantidade).replace("\u00a0", " ")));
     L.push("", "Total estimado: " + moeda(Carrinho.subtotal() + taxa).replace("\u00a0", " "), "");
@@ -64,16 +64,16 @@
       m.innerHTML = '<div class="caixa"><button type="button" class="modal-fechar" data-fechar aria-label="Fechar" style="top:.6rem;right:.6rem">' + icone("x", "h-5 w-5") + '</button><h2>Pedido pelo WhatsApp</h2><p class="sub">Só o básico pra loja montar seu pedido. Pagamento e prazo você combina na conversa.</p>' +
         '<form><div class="grid grid-cols-2 gap-2" style="margin-bottom:.8rem"><button type="button" class="btn-s ' + (entrega ? "" : "neutro") + '" data-mod="entrega">Entrega</button><button type="button" class="btn-s ' + (entrega ? "neutro" : "") + '" data-mod="retirada">Retirada</button></div>' +
         '<label class="campo-s">Nome<input name="nome" required value="' + esc(d.nome || "") + '" autocomplete="name"/></label><label class="campo-s">Telefone (WhatsApp)<input name="telefone" required inputmode="tel" value="' + esc(d.telefone || "") + '" autocomplete="tel"/></label>' +
-        '<label class="campo-s">Bairro' + (entrega ? "" : " (opcional)") + '<select name="bairro"' + (entrega ? " required" : "") + '><option value="">—</option>' + U.taxasEntrega.map((x) => '<option value="' + esc(x.bairro) + '"' + (d.bairro === x.bairro ? " selected" : "") + ">" + esc(x.bairro) + (entrega ? " — " + moeda(x.taxa) : "") + "</option>").join("") + '</select></label><label class="campo-s">Endereço (rua, número, complemento)' + (entrega ? "" : " — opcional na retirada") + '<input name="endereco"' + (entrega ? " required" : "") + ' value="' + esc(d.endereco || "") + '" autocomplete="street-address"/></label>' +
+        '<label class="campo-s">Endereço (rua, número, complemento' + (entrega ? ", bairro)" : ") — opcional na retirada") + '<input name="endereco"' + (entrega ? " required" : "") + ' value="' + esc(d.endereco || "") + '" autocomplete="street-address"/></label>' +
         '<p class="erro campo-s" data-erro style="display:none"></p><button class="btn-s whats"><span class="h-5 w-5">' + LOGO_WHATS + "</span>Enviar pedido no WhatsApp</button></form></div>";
     };
     pinta(); document.body.appendChild(m); document.body.style.overflow = "hidden";
     const fechar = () => { m.remove(); document.body.style.overflow = ""; };
     m.addEventListener("click", (e) => { if (e.target === m || e.target.closest("[data-fechar]")) return fechar(); const b = e.target.closest("[data-mod]"); if (b) { Object.assign(d, Object.fromEntries(new FormData(m.querySelector("form")).entries())); d.modalidade = b.dataset.mod; pinta(); } });
     m.addEventListener("submit", (e) => {
-      e.preventDefault(); const f = Object.fromEntries(new FormData(e.target).entries()); Object.assign(d, f); d.bairro = (d.bairro || "").split(" — ")[0];
-      const erro = m.querySelector("[data-erro]"); if (!d.nome.trim() || d.telefone.replace(/\D/g, "").length < 10 || (d.modalidade === "entrega" && (!d.bairro || !d.endereco.trim()))) { erro.textContent = "Preencha nome, telefone" + (d.modalidade === "entrega" ? ", bairro e endereço." : "."); erro.style.display = "block"; return; }
-      localStorage.setItem("bk_cliente", JSON.stringify(Object.assign(JSON.parse(localStorage.getItem("bk_cliente") || "{}") || {}, { nome: d.nome, telefone: d.telefone, endereco: d.endereco || "", bairro: d.bairro || "" })));
+      e.preventDefault(); const f = Object.fromEntries(new FormData(e.target).entries()); Object.assign(d, f);
+      const erro = m.querySelector("[data-erro]"); if (!d.nome.trim() || d.telefone.replace(/\D/g, "").length < 10 || (d.modalidade === "entrega" && !d.endereco.trim())) { erro.textContent = "Preencha nome, telefone" + (d.modalidade === "entrega" ? " e endereço." : "."); erro.style.display = "block"; return; }
+      localStorage.setItem("bk_cliente", JSON.stringify(Object.assign(JSON.parse(localStorage.getItem("bk_cliente") || "{}") || {}, { nome: d.nome, telefone: d.telefone, endereco: d.endereco || "" })));
       window.open(linkWhats(mensagemSemLogin(d)), "_blank"); fechar(); toast("Pedido aberto no WhatsApp", "Combine pagamento e prazo com a loja.");
     });
   }

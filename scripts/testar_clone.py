@@ -20,7 +20,7 @@ def roda(nome, launcher, fotos):
     pg.click("#link-carrinho"); time.sleep(1.2); snap("4-pedido-sem-login", full_page=True)
     # pedido sem login -> whatsapp
     pg.evaluate("()=>{window.__urls=[];window.open=(u)=>{window.__urls.push(u);return null;}}"); pg.click("[data-sem-login]"); time.sleep(.4); snap("4b-sem-login-form")
-    pg.fill('#modal-sem-login [name="nome"]',"Maria Teste"); pg.fill('#modal-sem-login [name="telefone"]',"48999990000"); pg.select_option('#modal-sem-login [name="bairro"]',"Pagani"); pg.fill('#modal-sem-login [name="endereco"]',"Rua das Flores, 10"); pg.click("#modal-sem-login form .btn-s.whats"); time.sleep(.4)
+    pg.fill('#modal-sem-login [name="nome"]',"Maria Teste"); pg.fill('#modal-sem-login [name="telefone"]',"48999990000"); pg.fill('#modal-sem-login [name="endereco"]',"Rua das Flores, 10, Pagani"); pg.click("#modal-sem-login form .btn-s.whats"); time.sleep(.4)
     from urllib.parse import unquote; u=pg.evaluate("()=>window.__urls"); print(nome,"sem login ->", (unquote(u[0]).split("text=")[1].replace("\n"," | ")[:260] if u else "NADA"))
     # criar conta
     pg.click('[data-abrir-login="criar"]'); time.sleep(.4); snap("5-criar-conta")
