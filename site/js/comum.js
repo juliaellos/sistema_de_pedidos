@@ -98,7 +98,7 @@
       '<h4>Endereço</h4><p>' + esc(U.endereco) + '<br/>' + esc(U.bairro) + ' · ' + esc(U.cidade) + '</p><p><a class="text-primary font-semibold" href="' + U.mapa + '" target="_blank" rel="noopener">Ver no mapa</a></p>' +
       '<h4>Redes sociais</h4><p><a class="inline-flex items-center gap-2 text-primary font-semibold" href="' + esc(U.instagram) + '" target="_blank" rel="noopener">' + icone("instagram", "h-4 w-4") + esc(U.instagramUsuario || "Instagram") + '</a></p>' +
       '<h4>Contato</h4><p><a class="inline-flex items-center gap-2" href="' + linkWhats() + '" target="_blank" rel="noopener"><span class="h-4 w-4" style="color:#25D366">' + LOGO_WHATS + '</span>WhatsApp ' + esc(U.whatsappFormatado) + '</a></p>' +
-      '<h4>Outras informações</h4><p>CNPJ: ' + esc(U.cnpj || "—") + '</p><p>Pedido mínimo: ' + moeda(U.pedidoMinimo || 0) + '</p>';
+      '<h4>Outras informações</h4><p>CNPJ: ' + esc(U.cnpj || "—") + '</p>';
     const horario = '<table class="horarios">' + DIAS.map((d, i) => '<tr class="' + (i === hoje ? "hoje" : "") + '"><td>' + (i === hoje ? icone("clock", "inline h-3.5 w-3.5 mr-1 text-primary") : "") + d + "</td><td>" + fmtFaixas((U.horarios || {})[i]) + "</td></tr>").join("") + "</table>";
     f.innerHTML = '<div class="gaveta-loja" role="dialog" aria-modal="true"><button class="fechar" aria-label="Fechar" data-fechar>' + icone("x", "h-6 w-6") + '</button>' +
       '<div class="abas"><button data-aba="sobre" class="' + (aba !== "horario" ? "on" : "") + '">Sobre</button><button data-aba="horario" class="' + (aba === "horario" ? "on" : "") + '">Horário</button></div>' +
@@ -114,9 +114,9 @@
 
   // ---------- hero da loja ----------
   window.renderHeroLoja = function (el) {
-    const st = estaAberto(); const m = BK.mediaAvaliacoes();
+    const st = estaAberto();
     el.innerHTML = '<div class="container mx-auto px-4 loja-hero"><img class="loja-banner" src="' + esc(U.banner || "imagens/marca/banner-loja.jpg") + '" alt=""/>' +
-      '<div class="loja-cab"><div class="loja-logo"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></div><div><h1 class="loja-nome">' + esc(U.nomeCompleto.replace("Bread King ", "Bread King - ")) + '<span class="selo" title="Loja oficial">' + icone("star", "fill-current") + "</span>" + (m ? '<span class="nota">★ ' + m.media.toFixed(1) + "</span>" : "") + "</h1>" +
+      '<div class="loja-cab"><div class="loja-logo"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></div><div><h1 class="loja-nome">' + esc(U.nomeCompleto.replace("Bread King ", "Bread King - ")) + "</h1>" +
       '<div class="loja-meta"><span class="' + (st.aberto ? "aberto" : "fechado") + '">' + (st.aberto ? "Aberto · fecha às " + st.fecha : "Fechado" + (st.abre ? " · abre às " + st.abre : "")) + "</span><span>·</span><span>Entrega e retirada</span></div></div>" +
       '<div class="loja-acoes"><button class="btn-vermais" data-ver-mais="sobre">Ver mais</button></div></div>' +
       '<div class="loja-busca">' + icone("search") + '<input id="busca" type="search" placeholder="Buscar no cardápio"/></div></div><div class="faixa-cinza"></div>';

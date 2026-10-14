@@ -9,6 +9,7 @@ clientes, configurações) fica no `localStorage` do navegador: é a simulação
 
 | Arquivo | O que é |
 |---|---|
+| `index-v2.html` | Mesmo cardápio com **cards verticais em grade**: 4 por linha no computador, 2 no celular. Alternativa pra Júlia escolher. |
 | `index.html` | **Página principal: o cardápio.** Hero estilo app de delivery (banner, logo, aberto/fechado, Ver mais com Sobre e Horário, pedido mínimo), busca, "Recomendados pra você" (só pra quem já pediu), "Mais pedidos" e as 7 categorias com "Ver todos". |
 | `categoria.html?c=Padaria` | Grade completa de uma categoria (ou `c=mais-pedidos`, `c=recomendados`). |
 | `pedido.html` | Carrinho, Entrega (bairro + taxa) ou Retirada, dados, cupom, pagamento simulado (Pix ou cartão). Ao aprovar, cria o pedido e vai pro acompanhamento. |
@@ -21,7 +22,7 @@ clientes, configurações) fica no `localStorage` do navegador: é a simulação
 
 - Pra pagar no site é preciso **entrar ou criar conta** (nome, telefone, e-mail, **CPF e senha**). A conta guarda o carrinho, o acompanhamento e o histórico mesmo trocando de aba.
 - **SITE10**: 10% OFF na primeira compra pelo site, aplicado sozinho pra quem tem conta (o cliente pode trocar por outro cupom).
-- **Fazer pedido sem login**: botão no fim do carrinho que abre o WhatsApp da loja com os itens e o total, como no site original. Pagamento e entrega são combinados na conversa.
+- **Fazer pedido sem login**: botão no fim do carrinho. Abre um formulário rápido (nome, telefone, entrega ou retirada, bairro e endereço) e manda pro WhatsApp da loja a mensagem no modelo aprovado, com os itens, a taxa do bairro e o total. Pagamento e prazo são combinados na conversa.
 - **CADASTRO5**: ao completar o cadastro (nascimento, gênero, endereço, bairro, como conheceu, preferências) o cliente ganha um voucher de 5%, uma vez.
 - Simulação: contas e senhas ficam no `localStorage` do navegador, sem criptografia. Em produção isso vira backend com senha protegida e LGPD.
 

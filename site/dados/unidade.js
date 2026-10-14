@@ -12,8 +12,6 @@ window.UNIDADE = {
   horarios: { 0: ["08:00-20:00"], 1: ["08:00-20:00"], 2: ["08:00-20:00"], 3: ["08:00-20:00"], 4: ["08:00-20:00"], 5: ["08:00-20:00"], 6: ["08:00-20:00"] },
   razaoSocial: "BREAD KING PALHOÇA ALIMENTOS LTDA",   // provisório
   cnpj: "00.000.000/0001-00",                           // provisório
-  pedidoMinimo: 20.00,
-  avaliacao: null,                                      // ex.: 4.8 quando houver avaliações
   banner: "imagens/marca/banner-loja.jpg",              // trocar pela foto da loja/produtos (1180x250 ou proporção parecida)
   sobre: "A primeira padaria de supercongelados do Brasil. Pães, salgados, pizzas e confeitaria que você assa em casa e ficam perfeitos em minutos.",
   mapa: "https://www.google.com/maps/search/?api=1&query=Av.+At%C3%ADlio+Pedro+Pagani%2C+1275+-+Pagani%2C+Palho%C3%A7a+-+SC",

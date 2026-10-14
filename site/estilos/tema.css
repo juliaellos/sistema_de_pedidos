@@ -86,11 +86,12 @@ h1,h2,h3,h4,h5,h6{font-family:Figtree,system-ui,sans-serif;letter-spacing:0;font
 .item .preco{font-size:1rem;font-weight:400;color:var(--texto)}
 .item .foto{width:170px;height:120px;flex-shrink:0;border-radius:4px;object-fit:cover;background:var(--faixa);align-self:flex-start;margin-top:.35rem}
 @media(max-width:640px){.item{min-height:0;padding:.9rem}.item .foto{width:96px;height:96px}}
-.qtd-stepper{display:inline-flex;align-items:center;border:1px solid var(--linha);border-radius:4px;overflow:hidden}
-.qtd-stepper button{height:30px;width:30px;border:0;background:#fff;color:var(--vermelho);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.qtd-stepper{display:inline-flex;align-items:center;justify-content:space-between;width:112px;height:40px;border:1px solid var(--linha-suave);border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:0 .2rem;user-select:none}
+.qtd-stepper button{height:34px;width:34px;border:0;background:transparent;color:var(--vermelho);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border-radius:6px}
 .qtd-stepper button:hover{background:var(--faixa)}
-.qtd-stepper input{width:34px;height:30px;text-align:center;font-size:.9rem;border:0;border-left:1px solid var(--linha-suave);border-right:1px solid var(--linha-suave);font-family:inherit;color:var(--texto);-moz-appearance:textfield}
-.qtd-stepper input::-webkit-outer-spin-button,.qtd-stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qtd-stepper button.min{color:#f3a3ad;cursor:default}.qtd-stepper button.min:hover{background:transparent}
+.qtd-stepper button svg{width:16px;height:16px;stroke-width:2.2}
+.qtd-stepper .q{min-width:26px;text-align:center;font-size:1rem;color:var(--texto);font-weight:500}
 .btn-add{height:32px;padding:0 .9rem;border-radius:4px;border:1px solid var(--vermelho);background:#fff;color:var(--vermelho);font-weight:500;font-size:.85rem;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
 .btn-add:hover{background:var(--vermelho);color:#fff}
 .btn-add.ok{background:#2f7d45;border-color:#2f7d45;color:#fff}
@@ -109,7 +110,7 @@ h1,h2,h3,h4,h5,h6{font-family:Figtree,system-ui,sans-serif;letter-spacing:0;font
 .modal-info .leva{margin-top:1rem;padding:1rem;background:var(--faixa);border-radius:4px;font-size:.9rem;color:var(--cinza)}
 .modal-info .leva b{color:var(--texto);font-weight:500}
 .modal-acoes{display:flex;align-items:center;gap:1rem;margin-top:1.75rem;border-top:1px solid var(--linha-suave);padding-top:1.25rem}
-.modal-acoes .qtd-stepper button{height:40px;width:40px}.modal-acoes .qtd-stepper input{height:40px;width:44px}
+.modal-acoes .qtd-stepper{height:44px;width:124px}
 .btn-confirmar{flex:1;min-width:190px;white-space:nowrap;height:44px;border-radius:4px;border:0;background:var(--vermelho);color:#fff;font-weight:500;font-size:.95rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:space-between;padding:0 1.1rem}
 .btn-confirmar:hover{background:#a3162a}
 .modal-fechar{position:absolute;right:.75rem;top:.75rem;z-index:2;width:36px;height:36px;border-radius:999px;border:0;background:#fff;color:var(--vermelho);display:flex;align-items:center;justify-content:center;cursor:pointer}
@@ -183,3 +184,20 @@ body:has(#barra-carrinho) .whats-flutuante{bottom:5.5rem}
 .barra-progresso{height:6px;border-radius:999px;background:var(--faixa);overflow:hidden}.barra-progresso i{display:block;height:100%;background:var(--vermelho)}
 .item .preco{white-space:nowrap}
 @media(max-width:640px){.item .rodape{flex-wrap:wrap}.item .rodape>span:last-child{margin-left:auto}}
+
+/* ---------- layout v2: cards verticais em grade (4 no computador, 2 no celular) ---------- */
+.grade-v{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem}
+@media(max-width:1100px){.grade-v{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){.grade-v{grid-template-columns:repeat(2,1fr);gap:.75rem}}
+.item-v{display:flex;flex-direction:column;border:1px solid var(--linha-suave);border-radius:4px;background:#fff;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.item-v:hover{border-color:var(--linha)}
+.item-v .foto{width:100%;aspect-ratio:1/1;object-fit:cover;background:var(--faixa)}
+.item-v .texto{display:flex;flex-direction:column;flex:1;padding:.9rem 1rem 1rem}
+.item-v h3{font-size:1rem;font-weight:500;color:var(--texto);line-height:1.3;margin:0 0 .35rem}
+.item-v .desc{font-size:.82rem;color:var(--cinza);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.item-v .leva{font-size:.78rem;color:var(--cinza);margin-top:.3rem}.item-v .leva b{color:var(--texto);font-weight:500}
+.item-v .rodape{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:.75rem}
+.item-v .preco{font-size:1rem;color:var(--texto);white-space:nowrap}
+.item-v .acoes{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.6rem}
+.item-v .btn-add{flex:1;height:40px}
+@media(max-width:760px){.item-v .texto{padding:.7rem .75rem .8rem}.item-v h3{font-size:.9rem}.item-v .acoes{flex-direction:column;align-items:stretch}.item-v .qtd-stepper{width:100%}.item-v .btn-add{width:100%}}

@@ -12,12 +12,16 @@ def roda(nome, launcher, fotos):
     snap("1-cardapio"); rolar(pg); snap("1b-cardapio-full", full_page=True)
     print(nome,"fonte:", pg.evaluate("()=>getComputedStyle(document.body).fontFamily.split(',')[0]"), "| seções:", pg.locator("[data-category]").count(), "| itens:", pg.locator(".item").count())
     pg.click("[data-ver-mais]"); time.sleep(.5); snap("2-vermais"); print(nome,"instagram no ver mais:", pg.locator(".gaveta-loja a[href*='instagram']").count()); pg.keyboard.press("Escape"); time.sleep(.3)
+    pg.locator('[data-acao="mais"]').first.click(); pg.locator('[data-acao="mais"]').first.click(); print(nome,"stepper no card:", pg.locator("[data-q]").first.inner_text(), "| input editável?", pg.locator("[data-stepper] input").count())
     pg.locator(".item").first.click(); time.sleep(.5); snap("3-modal"); pg.click("[data-madd]"); time.sleep(.4)
+    pg.goto((SITE/"index-v2.html").as_uri(), wait_until="domcontentloaded"); time.sleep(1.5); snap("1c-v2"); print(nome,"v2 cards verticais:", pg.locator(".item-v").count(), "| estrela/nota no hero:", pg.locator(".loja-nome .selo, .loja-nome .nota").count(), "| pedido mínimo:", pg.locator("text=Pedido mínimo").count())
+    pg.goto((SITE/"index.html").as_uri(), wait_until="domcontentloaded"); time.sleep(1.2)
     pg.locator("[data-add]").nth(3).click(); time.sleep(.3)
     pg.click("#link-carrinho"); time.sleep(1.2); snap("4-pedido-sem-login", full_page=True)
     # pedido sem login -> whatsapp
-    pg.evaluate("()=>{window.__urls=[];window.open=(u)=>{window.__urls.push(u);return null;}}"); pg.click("[data-sem-login]"); time.sleep(.3)
-    from urllib.parse import unquote; u=pg.evaluate("()=>window.__urls"); print(nome,"sem login ->", (unquote(u[0]).split("text=")[1].replace("\n"," | ")[:140] if u else "NADA"))
+    pg.evaluate("()=>{window.__urls=[];window.open=(u)=>{window.__urls.push(u);return null;}}"); pg.click("[data-sem-login]"); time.sleep(.4); snap("4b-sem-login-form")
+    pg.fill('#modal-sem-login [name="nome"]',"Maria Teste"); pg.fill('#modal-sem-login [name="telefone"]',"48999990000"); pg.select_option('#modal-sem-login [name="bairro"]',"Pagani"); pg.fill('#modal-sem-login [name="endereco"]',"Rua das Flores, 10"); pg.click("#modal-sem-login form .btn-s.whats"); time.sleep(.4)
+    from urllib.parse import unquote; u=pg.evaluate("()=>window.__urls"); print(nome,"sem login ->", (unquote(u[0]).split("text=")[1].replace("\n"," | ")[:260] if u else "NADA"))
     # criar conta
     pg.click('[data-abrir-login="criar"]'); time.sleep(.4); snap("5-criar-conta")
     pg.fill('[data-form="criar"] [name="nome"]',"Teste Clone"); pg.fill('[data-form="criar"] [name="telefone"]',"48988475389"); pg.fill('[data-form="criar"] [name="cpf"]',"52998224725"); pg.fill('[data-form="criar"] [name="email"]',"teste@exemplo.com"); pg.fill('[data-form="criar"] [name="senha"]',"1234"); pg.click('[data-form="criar"] .btn-s'); time.sleep(.8)
@@ -43,7 +47,7 @@ def roda(nome, launcher, fotos):
     pg.click('[data-tela="segmentos"]'); time.sleep(.5); pg.click("text=Mulheres 25 a 45"); time.sleep(.5); print(nome,"mulheres 25-45:", pg.locator("h3").filter(has_text="no público").inner_text()); snap("13-admin-seg-genero", full_page=True)
     pg.click('[data-tela="clientes"]'); time.sleep(.5); snap("14-admin-clientes")
     m=b.new_context(viewport={"width":390,"height":844},device_scale_factor=2,is_mobile=True); mp=m.new_page(); mp.goto((SITE/"index.html").as_uri(), wait_until="domcontentloaded"); time.sleep(1.5)
-    if fotos: mp.screenshot(path=str(OUT/(pre+"15-mobile.png"))); mp.locator(".item").first.click(); time.sleep(.5); mp.screenshot(path=str(OUT/(pre+"16-mobile-modal.png")))
+    if fotos: mp.screenshot(path=str(OUT/(pre+"15-mobile.png"))); mp.goto((SITE/"index-v2.html").as_uri(), wait_until="domcontentloaded"); time.sleep(1.5); mp.evaluate("()=>window.scrollTo(0,700)"); time.sleep(.5); mp.screenshot(path=str(OUT/(pre+"16-mobile-v2.png")))
     b.close(); print(nome,"ERROS:", erros if erros else "nenhum")
 with sync_playwright() as p:
     roda("chromium", p.chromium, True)

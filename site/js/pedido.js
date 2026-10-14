@@ -45,11 +45,37 @@
     return L.join("\n");
   }
 
-  function mensagemSemLogin() {
-    const L = ["Olá! Quero fazer um pedido na " + U.nomeCompleto + ".", "", "Unidade: " + U.nome, "", "Pedido:"];
+  // Mensagem do pedido sem login (modelo aprovado em 13/10), com os dados do formulário rápido
+  function mensagemSemLogin(d) {
+    const entrega = d.modalidade === "entrega"; const taxa = entrega ? ((U.taxasEntrega.find((x) => x.bairro === d.bairro) || {}).taxa || 0) : 0;
+    const L = ["Olá! Quero fazer um pedido na " + U.nomeCompleto + ".", "", "Unidade: " + U.nome, "Cliente: " + d.nome, "Telefone: " + d.telefone];
+    if (entrega) { L.push("Endereço para entrega: " + d.endereco); L.push("Bairro: " + d.bairro + (taxa ? " – Taxa de entrega: " + moeda(taxa).replace("\u00a0", " ") : "")); L.push("Modalidade: Entrega"); } else L.push("Modalidade: Retirada na loja");
+    L.push("", "Pedido:");
     Carrinho.itens().forEach((i) => L.push("•  " + i.produto.nome.trim() + "  – Qtd " + i.quantidade + " – " + moeda(i.produto.preco * i.quantidade).replace("\u00a0", " ")));
-    L.push("", "Total estimado: " + moeda(Carrinho.subtotal()).replace("\u00a0", " "), "", "Vou te passar meu nome, endereço e forma de pagamento aqui no WhatsApp.");
+    L.push("", "Total estimado: " + moeda(Carrinho.subtotal() + taxa).replace("\u00a0", " "), "");
+    L.push(entrega ? "Por favor, confirme a taxa e o prazo de entrega." : "Por favor, confirme o horário para retirada.");
     return L.join("\n");
+  }
+  function abrirSemLogin() {
+    const m = document.createElement("div"); m.className = "modal-conta"; m.id = "modal-sem-login";
+    const d = Object.assign({ modalidade: "entrega" }, JSON.parse(localStorage.getItem("bk_cliente") || "{}") || {});
+    const pinta = () => {
+      const entrega = d.modalidade === "entrega";
+      m.innerHTML = '<div class="caixa"><button type="button" class="modal-fechar" data-fechar aria-label="Fechar" style="top:.6rem;right:.6rem">' + icone("x", "h-5 w-5") + '</button><h2>Pedido pelo WhatsApp</h2><p class="sub">Só o básico pra loja montar seu pedido. Pagamento e prazo você combina na conversa.</p>' +
+        '<form><div class="grid grid-cols-2 gap-2" style="margin-bottom:.8rem"><button type="button" class="btn-s ' + (entrega ? "" : "neutro") + '" data-mod="entrega">Entrega</button><button type="button" class="btn-s ' + (entrega ? "neutro" : "") + '" data-mod="retirada">Retirada</button></div>' +
+        '<label class="campo-s">Nome<input name="nome" required value="' + esc(d.nome || "") + '" autocomplete="name"/></label><label class="campo-s">Telefone (WhatsApp)<input name="telefone" required inputmode="tel" value="' + esc(d.telefone || "") + '" autocomplete="tel"/></label>' +
+        (entrega ? '<label class="campo-s">Bairro<select name="bairro" required><option value="">—</option>' + U.taxasEntrega.map((x) => '<option value="' + esc(x.bairro) + '"' + (d.bairro === x.bairro ? " selected" : "") + ">" + esc(x.bairro) + " — " + moeda(x.taxa) + "</option>").join("") + '</select></label><label class="campo-s">Endereço (rua, número, complemento)<input name="endereco" required value="' + esc(d.endereco || "") + '" autocomplete="street-address"/></label>' : "") +
+        '<p class="erro campo-s" data-erro style="display:none"></p><button class="btn-s whats"><span class="h-5 w-5">' + LOGO_WHATS + "</span>Enviar pedido no WhatsApp</button></form></div>";
+    };
+    pinta(); document.body.appendChild(m); document.body.style.overflow = "hidden";
+    const fechar = () => { m.remove(); document.body.style.overflow = ""; };
+    m.addEventListener("click", (e) => { if (e.target === m || e.target.closest("[data-fechar]")) return fechar(); const b = e.target.closest("[data-mod]"); if (b) { Object.assign(d, Object.fromEntries(new FormData(m.querySelector("form")).entries())); d.modalidade = b.dataset.mod; pinta(); } });
+    m.addEventListener("submit", (e) => {
+      e.preventDefault(); const f = Object.fromEntries(new FormData(e.target).entries()); Object.assign(d, f); d.bairro = (d.bairro || "").split(" — ")[0];
+      const erro = m.querySelector("[data-erro]"); if (!d.nome.trim() || d.telefone.replace(/\D/g, "").length < 10 || (d.modalidade === "entrega" && (!d.bairro || !d.endereco.trim()))) { erro.textContent = "Preencha nome, telefone" + (d.modalidade === "entrega" ? ", bairro e endereço." : "."); erro.style.display = "block"; return; }
+      localStorage.setItem("bk_cliente", JSON.stringify(Object.assign(JSON.parse(localStorage.getItem("bk_cliente") || "{}") || {}, { nome: d.nome, telefone: d.telefone, endereco: d.endereco || "", bairro: d.bairro || "" })));
+      window.open(linkWhats(mensagemSemLogin(d)), "_blank"); fechar(); toast("Pedido aberto no WhatsApp", "Combine pagamento e prazo com a loja.");
+    });
   }
 
   // ---------- itens ----------
@@ -219,7 +245,7 @@
         estado.cupom = c; estado.pagamento = null; toast("Cupom aplicado 🎉", "-" + c.desconto + "% com " + c.codigo); renderResumo(); return;
       }
       if (e.target.closest("[data-tirar-cupom]")) { estado.cupom = null; estado.cupomRemovido = true; estado.pagamento = null; renderResumo(); return; }
-      if (e.target.closest("[data-sem-login]")) { if (!Carrinho.totalItens()) return; window.open(linkWhats(mensagemSemLogin()), "_blank"); toast("Pedido aberto no WhatsApp", "Combine pagamento e entrega com a loja."); return; }
+      if (e.target.closest("[data-sem-login]")) { if (Carrinho.totalItens()) abrirSemLogin(); return; }
       const met = e.target.closest("[data-metodo]"); if (met) { estado.metodo = met.dataset.metodo; estado.pixEmAndamento = false; renderPagamento(); atualizarAviso(); return; }
       if (e.target.closest("[data-copiar]")) { const txt = res.querySelector("[data-pix-codigo]").textContent; (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast("Código Pix copiado"), () => toast("Não deu pra copiar automaticamente", "Selecione o código e copie manualmente.", true)); return; }
       if (e.target.closest("[data-pix-pagar]")) { estado.pixEmAndamento = true; renderPagamento(); atualizarAviso(); setTimeout(() => { estado.pixEmAndamento = false; confirmarPagamento("Pix"); }, (U.pagamento.segundosPix || 4) * 1000); return; }
