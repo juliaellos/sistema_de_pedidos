@@ -30,7 +30,7 @@ h1,h2,h3,h4,h5,h6{font-family:Figtree,system-ui,sans-serif;letter-spacing:0;font
 .topo-site{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid var(--linha-suave)}
 .topo-site .barra{display:flex;align-items:center;gap:1.5rem;height:68px}
 .topo-site .marca{display:flex;align-items:center;gap:.6rem;color:var(--texto);font-weight:600;font-size:1.05rem}
-.topo-site .marca img{height:36px;width:auto}
+.topo-site .marca img{height:40px;width:auto}
 .topo-site .marca small{display:block;font-weight:400;font-size:.72rem;color:var(--cinza);letter-spacing:0;text-transform:none}
 .topo-site nav{display:flex;gap:1.1rem;font-size:.9rem}
 .topo-site nav a{color:var(--texto)}.topo-site nav a.ativa,.topo-site nav a:hover{color:var(--vermelho)}
@@ -41,14 +41,14 @@ h1,h2,h3,h4,h5,h6{font-family:Figtree,system-ui,sans-serif;letter-spacing:0;font
 .link-carrinho svg{width:22px;height:22px;color:var(--vermelho)}
 .link-carrinho .n{display:block;color:var(--cinza);font-size:.7rem}
 .link-carrinho .v{font-weight:500}
-@media(max-width:768px){.topo-site .barra{height:60px;gap:.75rem}.topo-site nav{display:none}.topo-site .marca small{display:none}}
+@media(max-width:768px){.topo-site .barra{height:60px;gap:.75rem}.topo-site nav{display:none}}
 /* ---------- hero da loja ---------- */
 .loja-hero{padding:1.5rem 0 0}
 .loja-banner{width:100%;aspect-ratio:1306/250;max-height:250px;object-fit:cover;border-radius:4px;background:var(--faixa)}
 .loja-cab{display:flex;align-items:center;gap:1.25rem;padding:1.5rem 0 1.25rem;flex-wrap:wrap}
 .loja-logo{width:76px;height:76px;border-radius:999px;background:#fff;border:1px solid var(--linha-suave);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
 .loja-logo img{width:58px;height:auto}
-.loja-nome{font-weight:400;font-size:2.1rem;letter-spacing:-.01em;display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;color:var(--texto)}
+.loja-nome{font-weight:600;font-size:2.1rem;letter-spacing:-.01em;display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;color:var(--texto)}
 .loja-nome .selo{color:var(--vermelho);display:inline-flex}.loja-nome .selo svg{width:20px;height:20px}
 .loja-nome .nota{font-size:1rem;color:#e7a33e;font-weight:500;display:inline-flex;align-items:center;gap:.25rem}
 .loja-meta{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;font-size:.85rem;color:var(--cinza);margin-top:.2rem}

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="robots" content="noindex,nofollow"/>
+<title>Painel (v2) · Bread King Palhoça</title>
+<link rel="icon" type="image/png" href="../imagens/marca/logo-bread-king.png"/>
+<link rel="stylesheet" href="../estilos/fontes.css"/><link rel="stylesheet" href="admin-v2.css"/>
+<script src="../dados/unidade.js"></script><script src="../dados/catalogo.js"></script><script src="../js/banco.js"></script><script src="../js/icones.js"></script>
+<script src="admin.js" defer></script>
+</head>
+<body>
+<div id="login" class="login hidden"><form class="caixa" id="form-login"><img src="../imagens/marca/logo-bread-king.png" alt="Bread King"/><h1 style="font-size:1.4rem">Painel da unidade</h1><p class="mini" style="margin:.25rem 0 1.25rem" id="login-unidade"></p><label class="campo" style="text-align:left">Senha<input type="password" id="senha" autocomplete="current-password" required/></label><p class="mini" id="login-erro" style="color:#9E1B2B;margin:.5rem 0 0"></p><button class="btn primario" style="width:100%;justify-content:center;margin-top:1rem">Entrar</button><p class="mini" style="margin-top:1rem">Acesso restrito à equipe da loja.</p></form></div>
+<div id="app" class="app hidden">
+  <aside class="lateral">
+    <div class="marca"><img src="../imagens/marca/logo-bread-king.png" alt=""/><div><b>Bread King</b><small id="lateral-unidade"></small></div></div>
+    <nav id="menu"></nav>
+    <div class="rodape"><a href="../index.html" target="_blank">↗ Abrir o site</a><a href="#" id="sair">Sair</a><div style="margin-top:.5rem">Modo simulação · dados neste navegador</div></div>
+  </aside>
+  <main class="conteudo" id="tela"></main>
+</div>
+</body>
+</html>

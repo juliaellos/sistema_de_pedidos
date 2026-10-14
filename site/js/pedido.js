@@ -49,7 +49,7 @@
   function mensagemSemLogin(d) {
     const entrega = d.modalidade === "entrega"; const taxa = entrega ? ((U.taxasEntrega.find((x) => x.bairro === d.bairro) || {}).taxa || 0) : 0;
     const L = ["Olá! Quero fazer um pedido na " + U.nomeCompleto + ".", "", "Unidade: " + U.nome, "Cliente: " + d.nome, "Telefone: " + d.telefone];
-    if (entrega) { L.push("Endereço para entrega: " + d.endereco); L.push("Bairro: " + d.bairro + (taxa ? " – Taxa de entrega: " + moeda(taxa).replace("\u00a0", " ") : "")); L.push("Modalidade: Entrega"); } else L.push("Modalidade: Retirada na loja");
+    if (entrega) { L.push("Endereço para entrega: " + d.endereco); L.push("Bairro: " + d.bairro + (taxa ? " – Taxa de entrega: " + moeda(taxa).replace("\u00a0", " ") : "")); L.push("Modalidade: Entrega"); } else { if (d.endereco) L.push("Endereço: " + d.endereco + (d.bairro ? " – " + d.bairro : "")); L.push("Modalidade: Retirada na loja"); }
     L.push("", "Pedido:");
     Carrinho.itens().forEach((i) => L.push("•  " + i.produto.nome.trim() + "  – Qtd " + i.quantidade + " – " + moeda(i.produto.preco * i.quantidade).replace("\u00a0", " ")));
     L.push("", "Total estimado: " + moeda(Carrinho.subtotal() + taxa).replace("\u00a0", " "), "");
@@ -64,7 +64,7 @@
       m.innerHTML = '<div class="caixa"><button type="button" class="modal-fechar" data-fechar aria-label="Fechar" style="top:.6rem;right:.6rem">' + icone("x", "h-5 w-5") + '</button><h2>Pedido pelo WhatsApp</h2><p class="sub">Só o básico pra loja montar seu pedido. Pagamento e prazo você combina na conversa.</p>' +
         '<form><div class="grid grid-cols-2 gap-2" style="margin-bottom:.8rem"><button type="button" class="btn-s ' + (entrega ? "" : "neutro") + '" data-mod="entrega">Entrega</button><button type="button" class="btn-s ' + (entrega ? "neutro" : "") + '" data-mod="retirada">Retirada</button></div>' +
         '<label class="campo-s">Nome<input name="nome" required value="' + esc(d.nome || "") + '" autocomplete="name"/></label><label class="campo-s">Telefone (WhatsApp)<input name="telefone" required inputmode="tel" value="' + esc(d.telefone || "") + '" autocomplete="tel"/></label>' +
-        (entrega ? '<label class="campo-s">Bairro<select name="bairro" required><option value="">—</option>' + U.taxasEntrega.map((x) => '<option value="' + esc(x.bairro) + '"' + (d.bairro === x.bairro ? " selected" : "") + ">" + esc(x.bairro) + " — " + moeda(x.taxa) + "</option>").join("") + '</select></label><label class="campo-s">Endereço (rua, número, complemento)<input name="endereco" required value="' + esc(d.endereco || "") + '" autocomplete="street-address"/></label>' : "") +
+        '<label class="campo-s">Bairro' + (entrega ? "" : " (opcional)") + '<select name="bairro"' + (entrega ? " required" : "") + '><option value="">—</option>' + U.taxasEntrega.map((x) => '<option value="' + esc(x.bairro) + '"' + (d.bairro === x.bairro ? " selected" : "") + ">" + esc(x.bairro) + (entrega ? " — " + moeda(x.taxa) : "") + "</option>").join("") + '</select></label><label class="campo-s">Endereço (rua, número, complemento)' + (entrega ? "" : " — opcional na retirada") + '<input name="endereco"' + (entrega ? " required" : "") + ' value="' + esc(d.endereco || "") + '" autocomplete="street-address"/></label>' +
         '<p class="erro campo-s" data-erro style="display:none"></p><button class="btn-s whats"><span class="h-5 w-5">' + LOGO_WHATS + "</span>Enviar pedido no WhatsApp</button></form></div>";
     };
     pinta(); document.body.appendChild(m); document.body.style.overflow = "hidden";
@@ -90,7 +90,7 @@
       '<div class="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted sm:h-24 sm:w-24"><img alt="' + esc(i.produto.nome) + '" class="h-full w-full object-cover" src="' + i.produto.imagem + '" onerror="imgFallback(this)"/></div>' +
       '<div class="min-w-0 flex-1"><div class="flex items-start justify-between gap-2"><div><h3 class="font-bold leading-tight">' + esc(i.produto.nome) + '</h3><p class="mt-1 text-xs text-muted-foreground">' + esc(i.produto.peso) + "</p></div>" +
       '<button aria-label="Remover ' + esc(i.produto.nome) + '" data-remover class="' + B.ghost + ' h-8 w-8 shrink-0 text-destructive">' + icone("x") + "</button></div>" +
-      '<div class="mt-3 flex items-center justify-between gap-3"><div class="flex items-center gap-2"><button aria-label="Diminuir quantidade" data-q="-1" class="' + B.outline + ' h-8 w-8">' + icone("minus") + '</button><span class="w-6 text-center font-bold">' + i.quantidade + '</span><button aria-label="Aumentar quantidade" data-q="1" class="' + B.outline + ' h-8 w-8">' + icone("plus") + "</button></div>" +
+      '<div class="mt-3 flex items-center justify-between gap-3"><div class="qtd-stepper"><button type="button" aria-label="Diminuir quantidade" data-q="-1" class="' + (i.quantidade <= 1 ? "min" : "") + '">' + icone("minus") + '</button><span class="q">' + i.quantidade + '</span><button type="button" aria-label="Aumentar quantidade" data-q="1">' + icone("plus") + "</button></div>" +
       "<strong>" + moeda(i.produto.preco * i.quantidade) + "</strong></div></div></article>").join("");
   }
 

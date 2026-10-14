@@ -69,7 +69,7 @@
     opts = opts || {}; el.className = "topo-site";
     const pag = location.pathname.split("/").pop() || "index.html";
     el.innerHTML = '<div class="container mx-auto px-4 barra">' +
-      '<a class="marca" href="index.html"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/><span>Bread King<small>' + esc(U.nome) + "</small></span></a>" +
+      '<a class="marca" href="index.html"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></a>' +
       '<nav><a href="index.html" class="' + (pag === "index.html" ? "ativa" : "") + '">Cardápio</a><a href="acompanhamento.html" class="' + (pag === "acompanhamento.html" ? "ativa" : "") + '">Meus pedidos</a></nav>' +
       '<div class="direita"><span id="area-conta"></span>' +
       '<a class="link-carrinho" href="pedido.html" id="link-carrinho">' + icone("shopping-bag") + '<span><span class="v" data-cv>' + moeda(Carrinho.subtotal()) + '</span><span class="n" data-cn>' + Carrinho.totalItens() + (Carrinho.totalItens() === 1 ? " item" : " itens") + "</span></span></a></div></div>";

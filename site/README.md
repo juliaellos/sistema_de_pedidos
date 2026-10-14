@@ -16,6 +16,7 @@ clientes, configurações) fica no `localStorage` do navegador: é a simulação
 | `acompanhamento.html` | **Meus pedidos** (botão no topo): em andamento e anteriores. Com `?n=BK-1001`, a linha do tempo do pedido e as mensagens automáticas da loja. Atualiza sozinha. |
 | `conta.html` | **Minha conta.** Dados do cliente, progresso do cadastro e voucher CADASTRO5 (5% OFF) liberado ao completar 100%. |
 | `sobre.html` | A antiga home clonada, em standby. **Não é linkada em lugar nenhum**; abre só pelo arquivo. |
+| `admin/index-v2.html` | Painel com o **mesmo visual do site** (branco, Figtree, vermelho só como acento). Mesmas funções do painel v1. |
 | `admin/index.html` | **Painel da unidade.** Sem link no site. Senha padrão `breadking` (troque em Configurações). |
 
 ## Conta do cliente e pedido sem login
