@@ -116,9 +116,9 @@
 
   // ---------- hero da loja ----------
   window.renderHeroLoja = function (el) {
-    const st = estaAberto();
+    const st = estaAberto(); let m;
     el.innerHTML = '<div class="container mx-auto px-4 loja-hero"><img class="loja-banner" src="' + esc(U.banner || "imagens/marca/banner-loja.jpg") + '" alt="' + esc(U.nomeCompleto) + '"/>' +
-      '<div class="loja-cab"><div class="loja-logo"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></div><div><h1 class="loja-nome">' + esc(U.nomeCompleto.replace("Bread King ", "Bread King - ")) + '<span class="selo" title="Loja oficial">' + icone("star", "h-5 w-5 fill-current") + "</span>" + (U.avaliacao ? '<span class="text-base font-bold text-secondary">★ ' + U.avaliacao.toFixed(1) + "</span>" : "") + "</h1>" +
+      '<div class="loja-cab"><div class="loja-logo"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></div><div><h1 class="loja-nome">' + esc(U.nomeCompleto.replace("Bread King ", "Bread King - ")) + '<span class="selo" title="Loja oficial">' + icone("star", "h-5 w-5 fill-current") + "</span>" + ((m = BK.mediaAvaliacoes()) ? '<span class="text-base font-bold text-secondary" title="' + m.n + ' avaliações">★ ' + m.media.toFixed(1) + "</span>" : "") + "</h1>" +
       '<div class="loja-meta"><span class="' + (st.aberto ? "aberto" : "fechado") + '">' + (st.aberto ? "Aberto agora · fecha às " + st.fecha : "Fechado agora" + (st.abre ? " · abre às " + st.abre : "")) + '</span><span>·</span><span>Entrega e retirada</span><span>·</span><span>' + esc(U.bairro) + ", " + esc(U.cidade) + '</span></div></div>' +
       '<div class="loja-acoes"><button class="btn-vermais" data-ver-mais="sobre">Ver mais</button></div></div>' +
       '<div class="loja-busca">' + icone("search") + '<input id="busca" type="search" placeholder="Buscar no cardápio"/></div></div>';

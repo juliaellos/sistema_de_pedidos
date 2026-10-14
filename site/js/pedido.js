@@ -1,11 +1,11 @@
 // Página do pedido: itens, Entrega/Retirada, taxa por bairro, cupom, pagamento simulado e envio pro WhatsApp (só depois de pago).
 (function () {
   const U = window.UNIDADE, B = window.BTN;
-  const estado = { modalidade: "entrega", nome: "", email: "", telefone: "", endereco: "", bairro: "", cupom: null, pagamento: null, metodo: "pix", pixEmAndamento: false };
+  const estado = { modalidade: "entrega", nome: "", email: "", telefone: "", nascimento: "", endereco: "", bairro: "", cupom: null, pagamento: null, metodo: "pix", pixEmAndamento: false };
   const CHAVE_DADOS = "bk_cliente";
   try { Object.assign(estado, JSON.parse(localStorage.getItem(CHAVE_DADOS) || "{}")); } catch (e) {}
   estado.pagamento = null; // pagamento nunca persiste entre visitas
-  const guardarDados = () => localStorage.setItem(CHAVE_DADOS, JSON.stringify({ nome: estado.nome, email: estado.email, telefone: estado.telefone, endereco: estado.endereco, bairro: estado.bairro, modalidade: estado.modalidade }));
+  const guardarDados = () => localStorage.setItem(CHAVE_DADOS, JSON.stringify({ nome: estado.nome, email: estado.email, telefone: estado.telefone, nascimento: estado.nascimento, endereco: estado.endereco, bairro: estado.bairro, modalidade: estado.modalidade }));
 
   const taxaBairro = () => { const t = U.taxasEntrega.find((x) => x.bairro === estado.bairro); return t ? t.taxa : 0; };
   function totais() {
@@ -73,6 +73,7 @@
       '<div class="mt-5 space-y-1.5"><label class="text-sm font-semibold">Unidade Bread King</label><div class="flex h-12 w-full items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm">' + icone("map-pin", "h-4 w-4 text-primary") + esc(U.nome) + " · " + esc(U.endereco) + "</div></div>" +
       '<div class="mt-5 space-y-3"><p class="text-sm font-semibold">' + (entrega ? "Dados para entrega" : "Seus dados") + "</p>" +
       inp("nome", "Seu nome", "user", "text", 'autocomplete="name"') + inp("email", "Seu e-mail", "mail", "email", 'autocomplete="email"') + inp("telefone", "Seu telefone", "phone", "tel", 'autocomplete="tel" inputmode="tel"') +
+      '<div class="relative">' + icone("sparkles", "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground") + '<input data-campo="nascimento" type="date" class="flex w-full rounded-md border border-input px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm h-12 bg-background pl-11" value="' + esc(estado.nascimento) + '" aria-label="Data de nascimento"/><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">nascimento (opcional)</span></div>' +
       (entrega ? '<div class="relative">' + icone("map-pin", "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground") + '<select data-campo="bairro" class="flex h-12 w-full appearance-none rounded-md border border-input bg-background pl-11 pr-10 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2' + (estado.bairro ? "" : " text-muted-foreground") + '"><option value="">Seu bairro (calcula a taxa)</option>' + U.taxasEntrega.map((x) => '<option value="' + esc(x.bairro) + '"' + (x.bairro === estado.bairro ? " selected" : "") + ">" + esc(x.bairro) + " — " + moeda(x.taxa) + "</option>").join("") + "</select>" + icone("chevron-down", "pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50") + "</div>" +
         inp("endereco", "Endereço completo (rua, número, complemento)", "map-pin", "text", 'autocomplete="street-address"') +
         '<p class="text-xs text-muted-foreground">' + esc(U.textoEntrega) + "</p>"
@@ -156,7 +157,7 @@
   // ---------- registro do pedido no banco local e ida pro acompanhamento ----------
   function registrarPedido() {
     const numero = BK.novoNumero(); const agora = new Date().toISOString();
-    const pedido = { numero, quando: agora, cliente: { nome: estado.nome.trim(), email: estado.email.trim(), telefone: estado.telefone.trim() }, modalidade: estado.modalidade, endereco: estado.modalidade === "entrega" ? estado.endereco.trim() : "", bairro: estado.modalidade === "entrega" ? estado.bairro : "",
+    const pedido = { numero, quando: agora, cliente: { nome: estado.nome.trim(), email: estado.email.trim(), telefone: estado.telefone.trim(), nascimento: estado.nascimento || "" }, modalidade: estado.modalidade, endereco: estado.modalidade === "entrega" ? estado.endereco.trim() : "", bairro: estado.modalidade === "entrega" ? estado.bairro : "",
       itens: Carrinho.itens().map((i) => ({ id: i.produto.id, nome: i.produto.nome, categoria: i.produto.categoria, qtd: i.quantidade, preco: i.produto.preco })), cupom: estado.cupom, totais: totais(), pagamento: estado.pagamento, status: "pago", historico: [{ status: "pago", quando: agora, obs: "Pagamento " + estado.pagamento.metodo + " (simulado)" }], mensagens: [] };
     BK.salvarPedido(pedido);
     return pedido;
@@ -185,9 +186,10 @@
       const m = e.target.closest("[data-modalidade]"); if (m) { estado.modalidade = m.dataset.modalidade; estado.pagamento = null; guardarDados(); renderResumo(); return; }
       if (e.target.closest("[data-aplicar-cupom]")) {
         const inp = res.querySelector("[data-cupom]"), cod = (inp.value || "").trim().toUpperCase(), erro = res.querySelector("[data-cupom-erro]");
-        const c = U.cupons.find((x) => x.codigo === cod);
         if (!cod) return;
-        if (!c) { erro.textContent = "Cupom inválido ou expirado."; erro.classList.remove("hidden"); return; }
+        const v = BK.validarCupom(cod, Carrinho.subtotal(), estado.telefone);
+        if (v.erro) { erro.textContent = v.erro; erro.classList.remove("hidden"); return; }
+        const c = { codigo: v.cupom.codigo, desconto: v.cupom.desconto };
         estado.cupom = c; estado.pagamento = null; toast("Cupom aplicado 🎉", "-" + c.desconto + "% com " + c.codigo); renderResumo(); return;
       }
       if (e.target.closest("[data-tirar-cupom]")) { estado.cupom = null; estado.pagamento = null; renderResumo(); return; }

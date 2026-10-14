@@ -12,6 +12,7 @@
   function lerStepper(el) { const i = el.querySelector("input"); let v = Math.floor(Number(i.value) || 1); v = Math.max(1, Math.min(99, v)); i.value = v; return v; }
 
   const mini = (p) => p.imagem && p.imagem.startsWith("imagens/produtos/") && !p.imagem.startsWith("data:") ? p.imagem.replace("imagens/produtos/", "imagens/produtos/mini/").replace(/\.[a-z]+$/i, ".jpg") : p.imagem;
+  const composicao = (p) => (p.combo && p.combo.length) ? p.combo.map((x) => { const q = BK.produto(x.id); return x.qtd + "× " + (q ? q.nome : x.id); }).join(" + ") : "";
   function card(p) {
     const noPedido = Carrinho.quantidade(p.id);
     return '<div class="w-[72vw] max-w-[260px] shrink-0 snap-start sm:w-[260px]" data-card="' + p.id + '">' +
@@ -21,6 +22,7 @@
       '<div class="no-pedido' + (noPedido ? "" : " hidden") + '" data-no-pedido="' + p.id + '">' + noPedido + " no pedido</div></div>" +
       '<div class="flex flex-1 flex-col p-3"><h3 class="min-h-10 font-bold text-sm md:text-base line-clamp-2 group-hover:text-primary transition-colors duration-300 leading-tight" data-abrir="' + p.id + '">' + esc(p.nome) + "</h3>" +
       '<p class="mt-1.5 text-xs font-medium text-muted-foreground">' + esc(p.peso || "") + "</p>" +
+      (composicao(p) ? '<p class="mt-1.5 text-xs font-semibold text-primary line-clamp-2">Leva: ' + esc(composicao(p)) + "</p>" : "") +
       (p.descricao ? '<p class="mt-1.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">' + esc(p.descricao) + "</p>" : "") +
       '<div class="mt-auto flex items-center justify-between gap-2 border-t border-border/50 pt-3"><span class="price-gold text-lg md:text-xl font-bold">' + moeda(p.preco) + "</span>" + stepper(p.id, 1) + "</div>" +
       '<button type="button" data-add="' + p.id + '" class="' + B.base + ' mt-2 h-9 w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg gap-1 px-3 py-1.5 text-xs font-bold">' + icone("plus") + "<span>Adicionar</span></button>" +
@@ -109,6 +111,7 @@
       '<button type="button" data-fechar aria-label="Fechar" class="absolute right-4 top-4 z-20 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-background transition-colors">' + icone("x", "h-5 w-5") + "</button>" +
       '<div class="flex flex-col"><div class="aspect-video bg-muted/30 relative overflow-hidden"><img alt="' + esc(p.nome) + '" class="w-full h-full object-cover" src="' + p.imagem + '" onerror="imgFallback(this)"/><div class="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent"></div>' + (p.destaque ? '<div class="badge-featured">⭐ Destaque</div>' : "") + "</div>" +
       '<div class="p-6 space-y-6"><div class="flex flex-col text-center sm:text-left space-y-2"><h2 class="tracking-tight text-2xl md:text-3xl font-black leading-tight">' + esc(p.nome) + '</h2><p class="text-sm font-medium">Categoria: <span class="text-secondary">' + esc(p.categoria) + "</span></p></div>" +
+      (composicao(p) ? '<div class="rounded-xl bg-muted px-4 py-3 text-sm"><b>O combo leva:</b><br/>' + esc(composicao(p)) + "</div>" : "") +
       (p.descricao ? '<p class="text-sm text-muted-foreground leading-relaxed">' + esc(p.descricao) + "</p>" : "") +
       (p.peso ? '<p class="text-sm text-muted-foreground"><span class="font-medium">Peso/Tamanho:</span> ' + esc(p.peso) + "</p>" : "") +
       '<div class="flex items-center justify-between py-4 border-y border-border/30"><span class="text-sm text-muted-foreground font-medium">Preço unitário</span><span class="price-gold text-3xl">' + moeda(p.preco) + "</span></div>" +

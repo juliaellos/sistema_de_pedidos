@@ -1,5 +1,65 @@
-// Catálogo clonado de breadkingsaopaulo.com.br em 2026-10-13. Editar aqui pra mudar produtos/preços.
+// Catálogo clonado de breadkingsaopaulo.com.br em 2026-10-13 + combos de exemplo (editar pelo painel).
 window.CATALOGO = [
+ {
+  "id": "combo-cafe-da-manha",
+  "categoria": "Combos",
+  "nome": "Combo Café da Manhã",
+  "peso": "2 itens",
+  "descricao": "Pão de queijo tradicional + croissant. Monte a mesa de domingo em minutos.",
+  "preco": 51.98,
+  "destaque": true,
+  "imagem": "imagens/produtos/1768858709742-0bfkrp38q82e.webp",
+  "combo": [
+   {
+    "id": "po-de-queijo-tradicional-30g-pacote-1kg",
+    "qtd": 1
+   },
+   {
+    "id": "croissant-assado-sem-recheio",
+    "qtd": 1
+   }
+  ]
+ },
+ {
+  "id": "combo-noite-da-pizza",
+  "categoria": "Combos",
+  "nome": "Combo Noite da Pizza",
+  "peso": "2 pizzas",
+  "descricao": "Duas pizzas artesanais à sua escolha pra assar em casa.",
+  "preco": 69.98,
+  "destaque": false,
+  "imagem": "imagens/produtos/1768921946702-puz3sn5ulhd.jpg",
+  "combo": [
+   {
+    "id": "pizza-artesanal-calabresa-410g",
+    "qtd": 1
+   },
+   {
+    "id": "pizza-artesanal-margherita",
+    "qtd": 1
+   }
+  ]
+ },
+ {
+  "id": "combo-festa",
+  "categoria": "Combos",
+  "nome": "Combo Festa",
+  "peso": "bolo + docinhos",
+  "descricao": "Bolo 4 leites 800g + 12 brigadeiros. Resolve o aniversário.",
+  "preco": 76.89,
+  "destaque": false,
+  "imagem": "imagens/produtos/1790882400245-ghwba1ypc2.jpg",
+  "combo": [
+   {
+    "id": "bolo-4-leites",
+    "qtd": 1
+   },
+   {
+    "id": "brigadeiro-c-12-und",
+    "qtd": 1
+   }
+  ]
+ },
  {
   "id": "beijinho-c-12-und",
   "categoria": "Confeitaria",

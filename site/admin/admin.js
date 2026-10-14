@@ -21,7 +21,7 @@
     document.getElementById("form-login").addEventListener("submit", (e) => { e.preventDefault(); if (senhaOk(document.getElementById("senha").value)) { sessionStorage.setItem("bk_admin", "1"); document.getElementById("login").classList.add("hidden"); mostrarApp(); } else document.getElementById("login-erro").textContent = "Senha incorreta."; });
     document.getElementById("sair").addEventListener("click", (e) => { e.preventDefault(); sessionStorage.removeItem("bk_admin"); location.reload(); });
   }
-  const TELAS = [["pedidos", "Pedidos", "package"], ["desempenho", "Desempenho", "sparkles"], ["abc", "Curva ABC", "star"], ["clientes", "Clientes", "user"], ["produtos", "Produtos", "utensils-crossed"], ["segmentos", "Segmentações", "tag"], ["config", "Configurações", "store"]];
+  const TELAS = [["pedidos", "Pedidos", "package"], ["desempenho", "Desempenho", "sparkles"], ["abc", "Curva ABC", "star"], ["clientes", "Clientes", "user"], ["produtos", "Produtos", "utensils-crossed"], ["cupons", "Cupons", "tag"], ["segmentos", "Segmentações", "search"], ["campanhas", "Campanhas", "message-circle"], ["avaliacoes", "Avaliações", "heart"], ["config", "Configurações", "store"]];
   let telaAtual = location.hash.replace("#", "") || "pedidos";
   function mostrarApp() {
     document.getElementById("app").classList.remove("hidden");
@@ -35,7 +35,7 @@
   function render() {
     document.querySelectorAll("#menu a").forEach((a) => a.classList.toggle("ativo", a.dataset.tela === telaAtual));
     const el = document.getElementById("tela");
-    ({ pedidos: telaPedidos, desempenho: telaDesempenho, abc: telaAbc, clientes: telaClientes, produtos: telaProdutos, segmentos: telaSegmentos, config: telaConfig }[telaAtual] || telaPedidos)(el);
+    ({ pedidos: telaPedidos, desempenho: telaDesempenho, abc: telaAbc, clientes: telaClientes, produtos: telaProdutos, cupons: telaCupons, segmentos: telaSegmentos, campanhas: telaCampanhas, avaliacoes: telaAvaliacoes, config: telaConfig }[telaAtual] || telaPedidos)(el);
   }
   const topo = (eyebrow, titulo, sub, acoes) => '<div class="topo"><div><p class="eyebrow">' + eyebrow + "</p><h1>" + titulo + "</h1>" + (sub ? "<p>" + sub + "</p>" : "") + '</div><div class="linha">' + (acoes || "") + "</div></div>";
   function gaveta(html) { fecharGaveta(); const f = document.createElement("div"); f.className = "fundo"; f.innerHTML = '<div class="gaveta" style="position:relative"><button class="btn pequeno fechar" data-fechar>' + icone("x") + "</button>" + html + "</div>"; f.addEventListener("click", (e) => { if (e.target === f || e.target.closest("[data-fechar]")) fecharGaveta(); }); document.body.appendChild(f); return f; }
@@ -106,7 +106,9 @@
     const prods = Object.keys(c.produtos).sort((a, b) => c.produtos[b] - c.produtos[a]).slice(0, 8);
     const g = gaveta('<p class="eyebrow">Cliente</p><h2>' + esc(c.nome) + '</h2><p class="mini">' + esc(c.telefone) + " · " + esc(c.email || "") + "</p>" +
       '<div class="kpis" style="margin-top:1rem"><div class="cartao kpi"><div class="rotulo">Pedidos</div><div class="valor">' + c.n + '</div></div><div class="cartao kpi"><div class="rotulo">Total</div><div class="valor">' + moeda(c.total) + '</div></div><div class="cartao kpi"><div class="rotulo">Ticket</div><div class="valor">' + moeda(c.ticket) + "</div></div></div>" +
+      (c.nascimento ? '<p class="mini">🎂 Nascimento: ' + c.nascimento.split("-").reverse().join("/") + (c.diasAteAniversario !== undefined ? " · aniversário em " + c.diasAteAniversario + " dias" : "") + "</p>" : "") +
       '<div class="linha"><a class="btn whats" target="_blank" href="' + wa(c.telefone, "Oi, " + c.nome.split(" ")[0] + "! Aqui é da " + cfg().nomeCompleto + ". ") + '">' + icone("message-circle") + "WhatsApp</a></div>" +
+      (BK.mensagensDoCliente(c.telefone).length ? '<h3 style="margin:1.25rem 0 .5rem;font-size:1rem">Campanhas recebidas</h3><div class="cartao">' + BK.mensagensDoCliente(c.telefone).map((m) => '<div class="mini" style="padding:.25rem 0">' + fmt(m.quando) + " · <b>" + esc(m.campanha) + "</b>: “" + esc(m.texto) + "”</div>").join("") + "</div>" : "") +
       '<h3 style="margin:1.25rem 0 .5rem;font-size:1rem">Mais comprados</h3><div class="cartao">' + prods.map((id) => { const p = BK.produto(id); return '<div class="mini" style="display:flex;justify-content:space-between;padding:.25rem 0"><span>' + esc(p ? p.nome : id) + "</span><b>" + c.produtos[id] + " un.</b></div>"; }).join("") + "</div>" +
       '<h3 style="margin:1.25rem 0 .5rem;font-size:1rem">Pedidos</h3><div class="cartao">' + c.pedidos.slice().reverse().map((p) => '<div class="clicavel" data-pedido="' + p.numero + '" style="display:flex;justify-content:space-between;gap:.5rem;padding:.4rem 0;border-bottom:1px solid var(--line)"><span><b>' + p.numero + '</b> <span class="mini">' + fmt(p.quando) + "</span></span><span>" + moeda(p.totais.total) + " " + pill(p.status) + "</span></div>").join("") + "</div>");
     g.querySelectorAll("[data-pedido]").forEach((d) => d.addEventListener("click", () => abrirPedido(d.dataset.pedido, c.telefone)));
@@ -127,6 +129,10 @@
     el.querySelectorAll("[data-toggle]").forEach((b) => b.addEventListener("click", () => { const p = BK.produto(b.dataset.toggle); p.ativo = p.ativo === false; BK.salvarProduto(p); toast(p.ativo ? "Produto visível no site." : "Produto oculto do site."); }));
     el.querySelectorAll("[data-excluir]").forEach((b) => b.addEventListener("click", () => { const p = BK.produto(b.dataset.excluir); if (confirm('Excluir "' + p.nome + '"? (Pra só tirar do site, use Ocultar.)')) { BK.excluirProduto(p.id); toast("Produto excluído."); } }));
   }
+  function linhaCombo(x) {
+    const ops = BK.produtos().filter((q) => q.categoria !== "Combos").map((q) => '<option value="' + q.id + '"' + (x && x.id === q.id ? " selected" : "") + ">" + esc(q.nome) + " — " + moeda(q.preco) + "</option>").join("");
+    return '<div class="linha item-combo" style="margin-bottom:.4rem;align-items:center"><select data-ci style="flex:1;min-width:200px;height:2.4rem;border:1px solid var(--line);border-radius:.6rem;padding:0 .5rem"><option value="">— produto —</option>' + ops + '</select><input data-cq type="number" min="1" max="20" value="' + (x ? x.qtd : 1) + '" style="width:4.5rem;height:2.4rem;border:1px solid var(--line);border-radius:.6rem;padding:0 .5rem"/><button type="button" class="btn pequeno perigo" data-rm-combo>' + icone("x") + "</button></div>";
+  }
   function editarProduto(id) {
     const p = id ? Object.assign({}, BK.produto(id)) : { id: "", nome: "", categoria: BK.CATEGORIAS[0], peso: "", descricao: "", preco: 0, destaque: false, ativo: true, imagem: "" };
     const g = gaveta('<p class="eyebrow">Produto</p><h2>' + (id ? "Editar produto" : "Novo produto") + '</h2><form id="fp" style="display:grid;gap:.75rem;margin-top:1rem">' +
@@ -136,12 +142,19 @@
       '<label class="campo">Descrição<textarea name="descricao">' + esc(p.descricao || "") + '</textarea></label>' +
       '<label class="campo"><span>Foto</span><div class="linha"><img class="thumb" id="prev" src="' + (p.imagem ? (p.imagem.startsWith("data:") ? p.imagem : "../" + esc(p.imagem)) : "") + '" onerror="this.style.visibility=\'hidden\'"/><input type="file" accept="image/*" id="foto" style="height:auto;padding:.4rem"/></div><span class="mini" style="font-weight:400">Ou um caminho em imagens/produtos/. A foto é redimensionada pra 800px.</span><input name="imagem" value="' + esc(p.imagem && !p.imagem.startsWith("data:") ? p.imagem : "") + '" placeholder="imagens/produtos/arquivo.jpg"/></label>' +
       '<label class="campo" style="flex-direction:row;align-items:center;gap:.5rem"><input type="checkbox" name="destaque" style="height:auto"' + (p.destaque ? " checked" : "") + "/> Marcar como Destaque</label>" +
+      '<div id="bloco-combo" class="' + (p.categoria === "Combos" ? "" : "hidden") + '"><p class="eyebrow" style="margin:.5rem 0 .4rem">Composição do combo</p><p class="mini" style="margin-bottom:.5rem">Escolha os produtos e a quantidade. O preço do combo é o que você definir acima; a soma dos itens aparece como referência.</p><div id="itens-combo">' + (p.combo || []).map((x) => linhaCombo(x)).join("") + '</div><button type="button" class="btn pequeno" data-add-item-combo>' + icone("plus") + ' Adicionar item</button><p class="mini" id="soma-combo" style="margin-top:.4rem"></p></div>' +
       '<div class="linha" style="justify-content:flex-end;margin-top:.5rem"><button type="button" class="btn" data-fechar>Cancelar</button><button class="btn primario">Salvar</button></div></form>');
     let dataUrl = p.imagem && p.imagem.startsWith("data:") ? p.imagem : null;
     g.querySelector("#foto").addEventListener("change", (e) => { const f = e.target.files[0]; if (!f) return; const img = new Image(); img.onload = () => { const c = document.createElement("canvas"); const r = Math.min(1, 800 / Math.max(img.width, img.height)); c.width = img.width * r; c.height = img.height * r; c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); dataUrl = c.toDataURL("image/jpeg", .85); g.querySelector("#prev").src = dataUrl; g.querySelector("#prev").style.visibility = "visible"; }; img.src = URL.createObjectURL(f); });
+    const bloco = g.querySelector("#bloco-combo"), soma = () => { let t = 0; g.querySelectorAll(".item-combo").forEach((l) => { const q = BK.produto(l.querySelector("[data-ci]").value); if (q) t += q.preco * (Number(l.querySelector("[data-cq]").value) || 1); }); g.querySelector("#soma-combo").textContent = t ? "Soma dos itens avulsos: " + moeda(t) : ""; };
+    g.querySelector('[name="categoria"]').addEventListener("change", (e) => bloco.classList.toggle("hidden", e.target.value !== "Combos"));
+    g.querySelector("[data-add-item-combo]").addEventListener("click", () => { g.querySelector("#itens-combo").insertAdjacentHTML("beforeend", linhaCombo(null)); });
+    g.addEventListener("click", (e) => { const r = e.target.closest("[data-rm-combo]"); if (r) { r.closest(".item-combo").remove(); soma(); } });
+    g.addEventListener("change", (e) => { if (e.target.matches("[data-ci],[data-cq]")) soma(); }); soma();
     g.querySelector("#fp").addEventListener("submit", (e) => {
       e.preventDefault(); const d = new FormData(e.target);
-      const n = { id: p.id || BK.novoIdProduto(d.get("nome")), nome: d.get("nome").trim(), categoria: d.get("categoria"), peso: d.get("peso").trim(), descricao: d.get("descricao").trim(), preco: Number(d.get("preco")), destaque: !!d.get("destaque"), ativo: d.get("ativo") === "1", imagem: dataUrl || d.get("imagem").trim() || p.imagem || "" };
+      const combo = d.get("categoria") === "Combos" ? [...g.querySelectorAll(".item-combo")].map((l) => ({ id: l.querySelector("[data-ci]").value, qtd: Number(l.querySelector("[data-cq]").value) || 1 })).filter((x) => x.id) : undefined;
+      const n = { id: p.id || BK.novoIdProduto(d.get("nome")), nome: d.get("nome").trim(), categoria: d.get("categoria"), peso: d.get("peso").trim(), descricao: d.get("descricao").trim(), preco: Number(d.get("preco")), destaque: !!d.get("destaque"), ativo: d.get("ativo") === "1", imagem: dataUrl || d.get("imagem").trim() || p.imagem || "", combo };
       BK.salvarProduto(n); fecharGaveta(); toast("Produto salvo."); render();
     });
   }
@@ -154,9 +167,12 @@
     { nome: "Top 20% em gasto", desc: "Ofertas premium", f: { top: 20 } },
     { nome: "Compraram nos últimos 30 dias", desc: "Pedir avaliação, cross-sell", f: { ultimoDe: new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10) } },
     { nome: "Só retirada", desc: "Incentivar entrega", f: { modalidade: "retirada" } },
-    { nome: "Nunca usaram cupom", desc: "Testar sensibilidade a desconto", f: { cupom: "nunca" } }
+    { nome: "Nunca usaram cupom", desc: "Testar sensibilidade a desconto", f: { cupom: "nunca" } },
+    { nome: "Aniversariantes do mês", desc: "Presente ou cupom de aniversário", f: { aniversarioMes: String(new Date().getMonth() + 1) } },
+    { nome: "Aniversário nos próximos 7 dias", desc: "Lembrete pra encomendar o bolo", f: { aniversarioDias: "7" } }
   ];
-  let seg = { nome: "", ultimoDe: "", ultimoAte: "", inativoDias: "", pedidosMin: "", pedidosMax: "", produto: "", categoria: "", categoriaNunca: "", ticketMin: "", totalMin: "", top: "", bairro: "", modalidade: "", cupom: "" };
+  let seg = { nome: "", ultimoDe: "", ultimoAte: "", inativoDias: "", pedidosMin: "", pedidosMax: "", produto: "", categoria: "", categoriaNunca: "", ticketMin: "", totalMin: "", top: "", bairro: "", modalidade: "", cupom: "", aniversarioMes: "", aniversarioDias: "" };
+  const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   let msgSeg = "Oi, {nome}! Aqui é da " + U.nomeCompleto + ". ";
   function aplicarSeg(cs) {
     let r = cs.filter((c) => {
@@ -174,6 +190,8 @@
       if (seg.modalidade && !((c.modalidades[seg.modalidade] || 0) > 0 && Object.keys(c.modalidades).length === 1)) return false;
       if (seg.cupom === "nunca" && c.cupons > 0) return false;
       if (seg.cupom === "sempre" && c.cupons < c.n) return false;
+      if (seg.aniversarioMes && c.mesAniversario !== Number(seg.aniversarioMes)) return false;
+      if (seg.aniversarioDias !== "" && seg.aniversarioDias !== undefined && !(c.diasAteAniversario !== undefined && c.diasAteAniversario <= Number(seg.aniversarioDias))) return false;
       return true;
     });
     if (seg.top) { r = r.sort((a, b) => b.total - a.total).slice(0, Math.max(1, Math.ceil(r.length * Number(seg.top) / 100))); }
@@ -191,8 +209,10 @@
       inp("pedidosMin", "Nº de pedidos ≥", "number") + inp("pedidosMax", "Nº de pedidos ≤", "number") + inp("top", "Top % em gasto", "number", "ex.: 20") +
       sel("produto", "Comprou o produto", prods.map((p) => [p.id, p.nome])) + sel("categoria", "Comprou a categoria", BK.CATEGORIAS.map((c) => [c, c])) + sel("categoriaNunca", "Nunca comprou a categoria", BK.CATEGORIAS.map((c) => [c, c])) +
       inp("ticketMin", "Ticket médio ≥ R$", "number") + inp("totalMin", "Total gasto ≥ R$", "number") + sel("bairro", "Bairro", cfg().taxasEntrega.map((t) => [t.bairro, t.bairro])) +
-      sel("modalidade", "Só pede por", [["entrega", "Entrega"], ["retirada", "Retirada"]]) + sel("cupom", "Cupom", [["nunca", "Nunca usou"], ["sempre", "Sempre usa"]]) + "</div>" +
-      '<div class="linha" style="margin-top:1rem;align-items:center"><h3 style="font-size:1.1rem">' + res.length + " cliente" + (res.length === 1 ? "" : "s") + " no público</h3><span style=\"flex:1\"></span><button class=\"btn pequeno\" data-salvar-seg>Salvar público</button><button class=\"btn pequeno\" data-csv-seg" + (res.length ? "" : " disabled") + ">Exportar CSV</button></div>" +
+      sel("modalidade", "Só pede por", [["entrega", "Entrega"], ["retirada", "Retirada"]]) + sel("cupom", "Cupom", [["nunca", "Nunca usou"], ["sempre", "Sempre usa"]]) +
+      sel("aniversarioMes", "Aniversário no mês", MESES.map((m, i) => [String(i + 1), m])) + inp("aniversarioDias", "Aniversário em até (dias)", "number", "ex.: 7") + "</div>" +
+      '<p class="mini" style="margin-top:.5rem">Aniversário vem do campo opcional "nascimento" no pedido. Clientes com data informada: ' + cs.filter((c) => c.nascimento).length + " de " + cs.length + ".</p>" +
+      '<div class="linha" style="margin-top:1rem;align-items:center"><h3 style="font-size:1.1rem">' + res.length + " cliente" + (res.length === 1 ? "" : "s") + " no público</h3><span style=\"flex:1\"></span><button class=\"btn pequeno\" data-salvar-seg>Salvar público</button><button class=\"btn pequeno\" data-csv-seg" + (res.length ? "" : " disabled") + ">Exportar CSV</button><button class=\"btn pequeno primario\" data-criar-camp" + (res.length ? "" : " disabled") + ">Criar campanha</button></div>" +
       '<label class="campo" style="margin-top:.75rem">Mensagem da campanha (use {nome})<textarea data-msg>' + esc(msgSeg) + "</textarea></label>" +
       (res.length ? '<div style="overflow:auto;margin-top:.75rem"><table><thead><tr><th>Cliente</th><th>Pedidos</th><th>Total</th><th>Último</th><th>Bairro</th><th></th></tr></thead><tbody>' + res.map((c) => "<tr><td><b>" + esc(c.nome) + '</b><div class="mini">' + esc(c.telefone) + "</div></td><td>" + c.n + "</td><td>" + moeda(c.total) + "</td><td>" + fmtD(c.ultimo) + "</td><td>" + esc(c.bairro || "—") + '</td><td><a class="btn pequeno whats" target="_blank" data-disparo="' + c.telefone + '" href="' + wa(c.telefone, msgSeg.replace(/\{nome\}/g, c.nome.split(" ")[0])) + '">' + icone("message-circle") + "Enviar</a></td></tr>").join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum cliente com esses filtros.</div>') + "</div>";
     el.querySelectorAll("[data-s]").forEach((i) => i.addEventListener("change", () => { seg[i.dataset.s] = i.value; telaSegmentos(el); }));
@@ -201,6 +221,7 @@
     el.querySelectorAll("[data-pronta]").forEach((d) => d.addEventListener("click", () => { const s = PRONTAS.concat(salvos)[Number(d.dataset.pronta)]; Object.keys(seg).forEach((k) => (seg[k] = "")); Object.assign(seg, s.f); telaSegmentos(el); }));
     el.querySelector("[data-salvar-seg]").addEventListener("click", () => { const nome = prompt("Nome do público:"); if (!nome) return; const c = cfg(); const l = c.segmentosSalvos || []; l.push({ nome, desc: "salvo em " + fmtD(new Date().toISOString()), f: Object.assign({}, seg) }); BK.salvarConfig(Object.assign(BK.ler("bk_db_config", {}), { segmentosSalvos: l })); toast("Público salvo."); });
     const csv = el.querySelector("[data-csv-seg]"); if (csv) csv.addEventListener("click", () => exportarClientes(res));
+    el.querySelector("[data-criar-camp]").addEventListener("click", () => { campRascunho = { publico: Object.assign({}, seg), nomePublico: "Público com " + res.length + " clientes", mensagem: msgSeg }; telaAtual = "campanhas"; location.hash = "campanhas"; render(); });
   }
 
   // ---------- DESEMPENHO (gráficos) ----------
@@ -265,6 +286,76 @@
     el.querySelector("[data-csv-abc]").addEventListener("click", () => baixarCsv("curva-abc-" + abc.tipo + ".csv", [["posicao", "nome", abc.tipo === "produtos" ? "categoria" : "telefone", "quantidade", "receita", "pct", "pct_acumulado", "classe"]].concat(lista.map((x, i) => [i + 1, x.nome, x.cat, x.qtd, x.valor.toFixed(2), x.pct.toFixed(1), x.acum.toFixed(1), x.classe]))));
   }
 
+  // ---------- CUPONS ----------
+  function telaCupons(el) {
+    const cs = BK.cupons(); const hoje = new Date().toISOString().slice(0, 10);
+    const situacao = (c) => c.ativo === false ? ["Inativo", "inativo"] : (c.validade && hoje > c.validade) ? ["Vencido", "cancelado"] : (c.limite && BK.usosCupom(c.codigo) >= c.limite) ? ["Esgotado", "cancelado"] : (c.inicio && hoje < c.inicio) ? ["Agendado", "preparo"] : ["Ativo", "ativo"];
+    el.innerHTML = topo("Promoções", "Cupons", "Código, desconto, validade, limite de usos e pedido mínimo. O site valida tudo na hora.", '<button class="btn primario" data-novo-cupom>' + icone("plus") + "Novo cupom</button>") +
+      '<div class="cartao">' + (cs.length ? '<div style="overflow:auto"><table><thead><tr><th>Código</th><th>Desconto</th><th>Validade</th><th>Regras</th><th>Usos</th><th>Situação</th><th></th></tr></thead><tbody>' + cs.map((c) => { const [r, cl] = situacao(c); const u = BK.usosCupom(c.codigo); return "<tr><td><b>" + esc(c.codigo) + "</b>" + (c.descricao ? '<div class="mini">' + esc(c.descricao) + "</div>" : "") + "</td><td>" + c.desconto + "%</td><td>" + (c.inicio ? "de " + c.inicio.split("-").reverse().join("/") + " " : "") + (c.validade ? "até " + c.validade.split("-").reverse().join("/") : "sem validade") + '</td><td class="mini">' + [c.minimo ? "mínimo " + moeda(c.minimo) : "", c.umPorCliente ? "1 por cliente" : "", c.limite ? "máx. " + c.limite + " usos" : ""].filter(Boolean).join(" · ") + "</td><td>" + u + (c.limite ? " / " + c.limite : "") + '</td><td><span class="pill ' + cl + '">' + r + '</span></td><td style="white-space:nowrap"><button class="btn pequeno" data-editar-cupom="' + esc(c.codigo) + '">Editar</button> <button class="btn pequeno" data-toggle-cupom="' + esc(c.codigo) + '">' + (c.ativo === false ? "Ativar" : "Desativar") + '</button> <button class="btn pequeno perigo" data-excluir-cupom="' + esc(c.codigo) + '">Excluir</button></td></tr>'; }).join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum cupom.</div>') + "</div>";
+    el.querySelector("[data-novo-cupom]").addEventListener("click", () => editarCupom(null));
+    el.querySelectorAll("[data-editar-cupom]").forEach((b) => b.addEventListener("click", () => editarCupom(b.dataset.editarCupom)));
+    el.querySelectorAll("[data-toggle-cupom]").forEach((b) => b.addEventListener("click", () => { const c = BK.cupons().find((x) => x.codigo === b.dataset.toggleCupom); c.ativo = c.ativo === false; BK.salvarCupom(c); }));
+    el.querySelectorAll("[data-excluir-cupom]").forEach((b) => b.addEventListener("click", () => { if (confirm("Excluir o cupom " + b.dataset.excluirCupom + "?")) BK.excluirCupom(b.dataset.excluirCupom); }));
+  }
+  function editarCupom(codigo) {
+    const c = codigo ? Object.assign({}, BK.cupons().find((x) => x.codigo === codigo)) : { codigo: "", desconto: 10, descricao: "", inicio: "", validade: "", limite: 0, umPorCliente: false, minimo: 0, ativo: true };
+    const g = gaveta('<p class="eyebrow">Cupom</p><h2>' + (codigo ? "Editar " + esc(codigo) : "Novo cupom") + '</h2><form id="fcup" style="display:grid;gap:.75rem;margin-top:1rem">' +
+      '<div class="grade2"><label class="campo">Código<input name="codigo" required value="' + esc(c.codigo) + '" style="text-transform:uppercase"' + (codigo ? " readonly" : "") + '/></label><label class="campo">Desconto (%)<input name="desconto" type="number" min="1" max="100" required value="' + c.desconto + '"/></label></div>' +
+      '<label class="campo">Descrição interna<input name="descricao" value="' + esc(c.descricao || "") + '" placeholder="ex.: campanha de reativação de outubro"/></label>' +
+      '<div class="grade2"><label class="campo">Vale a partir de<input name="inicio" type="date" value="' + esc(c.inicio || "") + '"/></label><label class="campo">Vale até<input name="validade" type="date" value="' + esc(c.validade || "") + '"/></label></div>' +
+      '<div class="grade2"><label class="campo">Limite total de usos (0 = sem limite)<input name="limite" type="number" min="0" value="' + (c.limite || 0) + '"/></label><label class="campo">Pedido mínimo (R$, 0 = sem mínimo)<input name="minimo" type="number" min="0" step="0.01" value="' + (c.minimo || 0) + '"/></label></div>' +
+      '<label class="campo" style="flex-direction:row;align-items:center;gap:.5rem"><input type="checkbox" name="umPorCliente" style="height:auto"' + (c.umPorCliente ? " checked" : "") + "/> Só uma vez por cliente (pelo telefone)</label>" +
+      '<label class="campo" style="flex-direction:row;align-items:center;gap:.5rem"><input type="checkbox" name="ativo" style="height:auto"' + (c.ativo !== false ? " checked" : "") + "/> Ativo</label>" +
+      '<div class="linha" style="justify-content:flex-end"><button type="button" class="btn" data-fechar>Cancelar</button><button class="btn primario">Salvar</button></div></form>');
+    g.querySelector("#fcup").addEventListener("submit", (e) => { e.preventDefault(); const d = new FormData(e.target); BK.salvarCupom({ codigo: d.get("codigo").trim().toUpperCase(), desconto: Number(d.get("desconto")), descricao: d.get("descricao").trim(), inicio: d.get("inicio"), validade: d.get("validade"), limite: Number(d.get("limite")) || 0, minimo: Number(d.get("minimo")) || 0, umPorCliente: !!d.get("umPorCliente"), ativo: !!d.get("ativo") }); fecharGaveta(); toast("Cupom salvo."); render(); });
+  }
+
+  // ---------- CAMPANHAS ----------
+  let campRascunho = null;
+  function telaCampanhas(el) {
+    const todas = BK.campanhas().slice().reverse(); const salvos = cfg().segmentosSalvos || []; const publicos = PRONTAS.concat(salvos);
+    el.innerHTML = topo("Campanhas", "Campanhas de WhatsApp", "Escolha um público, escreva a mensagem e dispare. Fica registrado quem recebeu o quê.", '<button class="btn primario" data-nova-camp>' + icone("plus") + "Nova campanha</button>") +
+      '<div class="kpis"><div class="cartao kpi"><div class="rotulo">Campanhas enviadas</div><div class="valor">' + todas.filter((c) => c.enviada).length + '</div></div><div class="cartao kpi"><div class="rotulo">Mensagens enviadas</div><div class="valor">' + todas.filter((c) => c.enviada).reduce((s, c) => s + c.destinatarios.length, 0) + '</div></div><div class="cartao kpi"><div class="rotulo">Rascunhos</div><div class="valor">' + todas.filter((c) => !c.enviada).length + "</div></div></div>" +
+      '<div class="cartao">' + (todas.length ? '<div style="overflow:auto"><table><thead><tr><th>Campanha</th><th>Público</th><th>Destinatários</th><th>Cupom</th><th>Quando</th><th>Situação</th></tr></thead><tbody>' + todas.map((c) => '<tr class="clicavel" data-camp="' + c.id + '"><td><b>' + esc(c.nome) + '</b><div class="mini">' + esc(c.mensagem.slice(0, 70)) + (c.mensagem.length > 70 ? "…" : "") + "</div></td><td>" + esc(c.nomePublico) + "</td><td>" + c.destinatarios.length + "</td><td>" + esc(c.cupom || "—") + "</td><td>" + fmt(c.enviadaEm || c.criadaEm) + "</td><td>" + (c.enviada ? '<span class="pill concluido">Enviada</span>' : '<span class="pill preparo">Rascunho</span>') + "</td></tr>").join("") + "</tbody></table></div>" : '<div class="vazio">Nenhuma campanha ainda. Crie a primeira ou monte um público em Segmentações e clique em "Criar campanha".</div>') + "</div>";
+    el.querySelector("[data-nova-camp]").addEventListener("click", () => editarCampanha(null));
+    el.querySelectorAll("[data-camp]").forEach((tr) => tr.addEventListener("click", () => abrirCampanha(tr.dataset.camp)));
+    if (campRascunho) { const r = campRascunho; campRascunho = null; editarCampanha(null, r); }
+  }
+  function editarCampanha(id, pre) {
+    const c = id ? Object.assign({}, BK.campanhas().find((x) => x.id === id)) : Object.assign({ id: "", nome: "", publicoIdx: "", nomePublico: "", publico: null, mensagem: "Oi, {nome}! Aqui é da " + cfg().nomeCompleto + ". ", cupom: "" }, pre || {});
+    const salvos = cfg().segmentosSalvos || []; const publicos = PRONTAS.concat(salvos); const cupons = BK.cupons().filter((x) => x.ativo !== false);
+    const g = gaveta('<p class="eyebrow">Campanha</p><h2>' + (id ? "Editar campanha" : "Nova campanha") + '</h2><form id="fcamp" style="display:grid;gap:.75rem;margin-top:1rem">' +
+      '<label class="campo">Nome da campanha<input name="nome" required value="' + esc(c.nome) + '" placeholder="ex.: Reativação outubro"/></label>' +
+      '<label class="campo">Público<select name="publico">' + (c.publico && !c.publicoIdx ? '<option value="atual" selected>' + esc(c.nomePublico) + " (da tela de Segmentações)</option>" : "") + '<option value="todos"' + (c.publicoIdx === "todos" ? " selected" : "") + ">Todos os clientes</option>" + publicos.map((p, i) => '<option value="' + i + '"' + (String(c.publicoIdx) === String(i) ? " selected" : "") + ">" + esc(p.nome) + "</option>").join("") + '</select></label><p class="mini" id="cont-publico"></p>' +
+      '<label class="campo">Cupom da campanha (opcional)<select name="cupom"><option value="">Nenhum</option>' + cupons.map((x) => '<option value="' + esc(x.codigo) + '"' + (c.cupom === x.codigo ? " selected" : "") + ">" + esc(x.codigo) + " · " + x.desconto + "%</option>").join("") + '</select></label>' +
+      '<label class="campo">Mensagem (use {nome} e {cupom})<textarea name="mensagem" required style="min-height:7rem">' + esc(c.mensagem) + "</textarea></label>" +
+      '<div class="caixa-prev cartao" id="prev-camp" style="background:#DDF1CF;border:0;font-size:.9rem"></div>' +
+      '<div class="linha" style="justify-content:flex-end"><button type="button" class="btn" data-fechar>Cancelar</button><button type="button" class="btn" data-salvar-rasc>Salvar rascunho</button><button class="btn primario" data-disparar>' + icone("message-circle") + "Disparar agora</button></div></form>");
+    const publicoAtual = () => { const v = g.querySelector('[name="publico"]').value; const cs = BK.clientes(); if (v === "todos") return { nome: "Todos os clientes", lista: cs }; if (v === "atual") { const guarda = Object.assign({}, seg); Object.assign(seg, c.publico); const r = aplicarSeg(cs); Object.assign(seg, guarda); return { nome: c.nomePublico, lista: r }; } const p = publicos[Number(v)]; const guarda = Object.assign({}, seg); Object.keys(seg).forEach((k) => (seg[k] = "")); Object.assign(seg, p.f); const r = aplicarSeg(cs); Object.assign(seg, guarda); return { nome: p.nome, lista: r }; };
+    const atualizar = () => { const pa = publicoAtual(); g.querySelector("#cont-publico").textContent = pa.lista.length + " cliente" + (pa.lista.length === 1 ? "" : "s") + " vão receber."; const ex = pa.lista[0]; const cup = g.querySelector('[name="cupom"]').value; g.querySelector("#prev-camp").innerHTML = '<span class="mini" style="color:#2F7D45;font-weight:800">Prévia' + (ex ? " pra " + esc(ex.nome.split(" ")[0]) : "") + "</span><br/>" + esc(g.querySelector('[name="mensagem"]').value.replace(/\{nome\}/g, ex ? ex.nome.split(" ")[0] : "Cliente").replace(/\{cupom\}/g, cup || "")); g.querySelector("[data-disparar]").disabled = !pa.lista.length; };
+    g.querySelectorAll("select,textarea").forEach((i) => i.addEventListener("input", atualizar)); atualizar();
+    const montar = (enviar) => { const d = new FormData(g.querySelector("#fcamp")); const pa = publicoAtual(); const v = d.get("publico"); return { id: c.id || "camp-" + Date.now().toString(36), nome: d.get("nome").trim() || "Campanha", publicoIdx: v === "atual" ? "" : v, nomePublico: pa.nome, publico: v === "atual" ? c.publico : (v === "todos" ? {} : publicos[Number(v)].f), cupom: d.get("cupom"), mensagem: d.get("mensagem").replace(/\{cupom\}/g, d.get("cupom") || ""), criadaEm: c.criadaEm || new Date().toISOString(), enviada: enviar, enviadaEm: enviar ? new Date().toISOString() : null, destinatarios: enviar ? pa.lista.map((x) => ({ telefone: x.telefone, nome: x.nome })) : pa.lista.map((x) => ({ telefone: x.telefone, nome: x.nome })) }; };
+    g.querySelector("[data-salvar-rasc]").addEventListener("click", () => { BK.salvarCampanha(montar(false)); fecharGaveta(); toast("Rascunho salvo."); render(); });
+    g.querySelector("#fcamp").addEventListener("submit", (e) => { e.preventDefault(); const camp = montar(true); if (!confirm("Disparar “" + camp.nome + "” pra " + camp.destinatarios.length + " clientes?")) return; BK.salvarCampanha(camp); fecharGaveta(); toast("Campanha enviada pra " + camp.destinatarios.length + " clientes (simulação)."); render(); });
+  }
+  function abrirCampanha(id) {
+    const c = BK.campanhas().find((x) => x.id === id); if (!c) return;
+    const g = gaveta('<p class="eyebrow">Campanha · ' + (c.enviada ? "enviada " + fmt(c.enviadaEm) : "rascunho") + '</p><h2>' + esc(c.nome) + '</h2><p class="mini">Público: ' + esc(c.nomePublico) + (c.cupom ? " · cupom " + esc(c.cupom) : "") + "</p>" +
+      '<div class="cartao" style="margin-top:1rem;background:#DDF1CF;border:0;font-size:.9rem">' + esc(c.mensagem) + "</div>" +
+      (c.enviada ? "" : '<div class="linha" style="margin-top:.75rem"><button class="btn primario" data-editar-camp>Editar e disparar</button></div>') +
+      '<h3 style="margin:1.25rem 0 .5rem;font-size:1rem">' + (c.enviada ? "Receberam" : "Vão receber") + " (" + c.destinatarios.length + ')</h3><div class="cartao">' + c.destinatarios.map((d) => '<div class="mini" style="padding:.25rem 0">' + esc(d.nome) + " · " + esc(d.telefone) + "</div>").join("") + "</div>");
+    const e = g.querySelector("[data-editar-camp]"); if (e) e.addEventListener("click", () => editarCampanha(c.id));
+  }
+
+  // ---------- AVALIAÇÕES ----------
+  function telaAvaliacoes(el) {
+    const av = BK.avaliacoes().slice().reverse(); const m = BK.mediaAvaliacoes(); const dist = [5, 4, 3, 2, 1].map((n) => av.filter((a) => a.nota === n).length);
+    const entregues = BK.pedidos().filter((p) => p.status === "concluido").length;
+    el.innerHTML = topo("Qualidade", "Avaliações", "O cliente só pode avaliar depois que o pedido é marcado como Concluído.") +
+      '<div class="kpis"><div class="cartao kpi"><div class="rotulo">Nota média</div><div class="valor">' + (m ? m.media.toFixed(1) + ' <span style="color:var(--gold)">★</span>' : "—") + '</div><div class="sub">' + (m ? m.n + " avaliações" : "sem avaliações") + '</div></div><div class="cartao kpi"><div class="rotulo">Taxa de resposta</div><div class="valor">' + (entregues ? Math.round(av.length / entregues * 100) : 0) + '%</div><div class="sub">' + av.length + " de " + entregues + ' pedidos concluídos</div></div><div class="cartao kpi"><div class="rotulo">Distribuição</div><div class="mini" style="margin-top:.4rem">' + [5, 4, 3, 2, 1].map((n, i) => n + "★ " + '<span style="display:inline-block;height:.5rem;width:' + (av.length ? Math.round(dist[i] / av.length * 100) : 0) + '%;max-width:60%;background:var(--gold);border-radius:3px;vertical-align:middle"></span> ' + dist[i]).join("<br/>") + "</div></div></div>" +
+      '<div class="cartao">' + (av.length ? av.map((a) => '<div style="padding:.75rem 0;border-bottom:1px solid var(--line)"><div class="linha" style="align-items:center;justify-content:space-between"><b>' + esc(a.cliente.nome) + ' <span style="color:var(--gold)">' + "★".repeat(a.nota) + '</span></b><span class="mini">' + fmt(a.quando) + " · pedido " + a.numero + "</span></div>" + (a.comentario ? '<p style="margin:.3rem 0 0">“' + esc(a.comentario) + "”</p>" : "") + '<div class="mini">' + esc((a.itens || []).join(", ")) + "</div></div>").join("") : '<div class="vazio">Nenhuma avaliação ainda. Marque pedidos como Concluído; o cliente vê o convite na página do pedido.</div>') + "</div>";
+  }
+
   // ---------- CONFIGURAÇÕES ----------
   function telaConfig(el) {
     const c = cfg(); const m = modelos();
@@ -276,7 +367,7 @@
       '<label class="campo">Horário<input name="horario" value="' + esc(c.horario) + '"/></label><label class="campo">Senha do painel<input name="senha" type="password" value="' + esc(c.admin && c.admin.senha || "breadking") + '"/></label></div>' +
       '<label class="campo" style="margin-top:.75rem">Texto da entrega (página do pedido)<textarea name="textoEntrega">' + esc(c.textoEntrega) + "</textarea></label></div>" +
       '<div class="cartao"><p class="eyebrow" style="margin-bottom:.75rem">Taxa de entrega por bairro</p><label class="campo">Um por linha: <code>Bairro; valor</code><textarea name="taxas" style="min-height:10rem">' + esc(c.taxasEntrega.map((t) => t.bairro + "; " + t.taxa.toFixed(2)).join("\n")) + "</textarea></label></div>" +
-      '<div class="cartao"><p class="eyebrow" style="margin-bottom:.75rem">Cupons</p><label class="campo">Um por linha: <code>CODIGO; desconto em %</code><textarea name="cupons">' + esc(c.cupons.map((x) => x.codigo + "; " + x.desconto).join("\n")) + "</textarea></label></div>" +
+      '<div class="cartao"><p class="eyebrow" style="margin-bottom:.5rem">Cupons</p><p class="mini">Os cupons agora têm aba própria, com validade e limites. <a href="#cupons" data-tela-link="cupons" style="color:var(--red);font-weight:800">Abrir Cupons</a></p></div>' +
       '<div class="cartao"><p class="eyebrow" style="margin-bottom:.75rem">Mensagens automáticas de status</p><p class="mini" style="margin-bottom:.75rem">Variáveis: {nome} {numero} {loja} {endereco} {total}. O envio é automático ao mudar o status. Nesta simulação a mensagem é registrada no pedido e aparece pro cliente na página de acompanhamento; em produção sai pela API de WhatsApp.</p>' +
       '<label class="campo" style="flex-direction:row;align-items:center;gap:.5rem;margin-bottom:.75rem"><input type="checkbox" name="mensagensAuto" style="height:auto"' + (c.mensagensAuto !== false ? " checked" : "") + "/> Enviar automaticamente ao marcar “Saiu pra entrega” / “Pronto pra retirada”</label>" +
       '<label class="campo" style="flex-direction:row;align-items:center;gap:.5rem;margin-bottom:.75rem"><input type="checkbox" name="mensagemConcluido" style="height:auto"' + (c.mensagemConcluido ? " checked" : "") + "/> Também enviar ao concluir</label>" +
@@ -287,11 +378,12 @@
       e.preventDefault(); const d = new FormData(e.target); const bc = (d.get("bairroCidade") || "").split("|");
       const novo = { nome: d.get("nome").trim(), nomeCompleto: d.get("nomeCompleto").trim(), whatsapp: d.get("whatsapp").replace(/\D/g, ""), whatsappFormatado: d.get("whatsappFormatado").trim(), endereco: d.get("endereco").trim(), bairro: (bc[0] || "").trim(), cidade: (bc[1] || "").trim(), horario: d.get("horario").trim(), textoEntrega: d.get("textoEntrega").trim(), admin: { senha: d.get("senha") || "breadking" },
         taxasEntrega: d.get("taxas").split("\n").map((l) => l.split(";")).filter((x) => x[0] && x[0].trim()).map((x) => ({ bairro: x[0].trim(), taxa: Number(String(x[1] || "0").replace(",", ".")) || 0 })),
-        cupons: d.get("cupons").split("\n").map((l) => l.split(";")).filter((x) => x[0] && x[0].trim()).map((x) => ({ codigo: x[0].trim().toUpperCase(), desconto: Number(x[1]) || 0 })),
+        cupons: c.cupons,
         mensagensAuto: !!d.get("mensagensAuto"), mensagemConcluido: !!d.get("mensagemConcluido"), modelosMensagem: { saiu: d.get("m_saiu"), pronto: d.get("m_pronto"), concluido: d.get("m_concluido") }, segmentosSalvos: c.segmentosSalvos || [] };
       BK.salvarConfig(novo); Object.assign(U, novo); toast("Configurações salvas."); render();
     });
     el.querySelector("[data-exemplos]").addEventListener("click", () => { gerarExemplos(); toast("40 pedidos de exemplo criados (últimos 6 meses)."); });
+    el.querySelector("[data-tela-link]").addEventListener("click", (e) => { e.preventDefault(); telaAtual = "cupons"; render(); });
     el.querySelector("[data-apagar-pedidos]").addEventListener("click", () => { if (confirm("Apagar todos os pedidos e clientes?")) { localStorage.removeItem("bk_db_pedidos"); toast("Pedidos apagados."); render(); } });
     el.querySelector("[data-zerar]").addEventListener("click", () => { if (confirm("Zerar tudo e voltar ao estado inicial do clone?")) { BK.limparTudo(); location.reload(); } });
   }
@@ -303,7 +395,7 @@
       const itens = []; const n = 1 + Math.floor(rnd() * 3); for (let j = 0; j < n; j++) { const p = prods[Math.floor(rnd() * prods.length)]; itens.push({ id: p.id, nome: p.nome, categoria: p.categoria, qtd: 1 + Math.floor(rnd() * 3), preco: p.preco }); }
       const entrega = rnd() > 0.3; const sub = itens.reduce((s, i) => s + i.qtd * i.preco, 0); const taxa = entrega ? ((cfg().taxasEntrega.find((t) => t.bairro === c[2]) || { taxa: 8 }).taxa) : 0; const cupom = rnd() > 0.7 ? { codigo: "BEMVINDO10", desconto: 10 } : null; const desc = cupom ? Math.round(sub * 10) / 100 : 0;
       const st = dias > 1 ? "concluido" : ["pago", "preparo", "saiu"][Math.floor(rnd() * 3)];
-      BK.salvarPedido({ numero: BK.novoNumero(), quando, cliente: { nome: c[0], telefone: c[1], email: c[0].split(" ")[0].toLowerCase() + "@exemplo.com" }, modalidade: entrega ? "entrega" : "retirada", endereco: entrega ? "Rua Exemplo, " + (10 + k) : "", bairro: entrega ? c[2] : "", itens, cupom, totais: { subtotal: sub, desconto: desc, taxa, total: sub - desc + taxa }, pagamento: { metodo: rnd() > 0.5 ? "Pix" : "Cartão final 1234", codigo: "BK-EX" + k, valor: sub - desc + taxa }, status: st, historico: [{ status: "pago", quando, obs: "exemplo" }], mensagens: [], exemplo: true });
+      BK.salvarPedido({ numero: BK.novoNumero(), quando, cliente: { nome: c[0], telefone: c[1], email: c[0].split(" ")[0].toLowerCase() + "@exemplo.com", nascimento: k % 3 === 0 ? (1985 + k) + "-" + String(((new Date().getMonth() + (k % 2)) % 12) + 1).padStart(2, "0") + "-" + String(1 + (k * 7) % 28).padStart(2, "0") : "" }, modalidade: entrega ? "entrega" : "retirada", endereco: entrega ? "Rua Exemplo, " + (10 + k) : "", bairro: entrega ? c[2] : "", itens, cupom, totais: { subtotal: sub, desconto: desc, taxa, total: sub - desc + taxa }, pagamento: { metodo: rnd() > 0.5 ? "Pix" : "Cartão final 1234", codigo: "BK-EX" + k, valor: sub - desc + taxa }, status: st, historico: [{ status: "pago", quando, obs: "exemplo" }], mensagens: [], exemplo: true });
     }
   }
   function baixarCsv(nome, linhas) {
