@@ -12,11 +12,11 @@ def roda(nome, launcher, fotos):
     snap("1-cardapio"); rolar(pg); snap("1b-cardapio-full", full_page=True)
     print(nome,"fonte:", pg.evaluate("()=>getComputedStyle(document.body).fontFamily.split(',')[0]"), "| seções:", pg.locator("[data-category]").count(), "| itens:", pg.locator(".item").count())
     pg.click("[data-ver-mais]"); time.sleep(.5); snap("2-vermais"); print(nome,"instagram no ver mais:", pg.locator(".gaveta-loja a[href*='instagram']").count()); pg.keyboard.press("Escape"); time.sleep(.3)
-    pg.locator('[data-acao="mais"]').first.click(); pg.locator('[data-acao="mais"]').first.click(); print(nome,"stepper no card:", pg.locator("[data-q]").first.inner_text(), "| input editável?", pg.locator("[data-stepper] input").count())
-    pg.locator(".item").first.click(); time.sleep(.5); snap("3-modal"); pg.click("[data-madd]"); time.sleep(.4)
+    print(nome,"stepper externo:", pg.locator("#categorias [data-stepper]").count())
+    pg.locator(".btn-add").first.click(); time.sleep(.5); snap("3-modal"); pg.locator('#modal-produto [data-acao="mais"]').click(); pg.locator('#modal-produto [data-acao="mais"]').click(); print(nome,"qtd no modal:", pg.locator("#modal-produto [data-q]").inner_text()); pg.click("[data-madd]"); time.sleep(.4)
     pg.goto((SITE/"index-v2.html").as_uri(), wait_until="domcontentloaded"); time.sleep(1.5); snap("1c-v2"); print(nome,"v2 cards verticais:", pg.locator(".item-v").count(), "| estrela/nota no hero:", pg.locator(".loja-nome .selo, .loja-nome .nota").count(), "| pedido mínimo:", pg.locator("text=Pedido mínimo").count())
     pg.goto((SITE/"index.html").as_uri(), wait_until="domcontentloaded"); time.sleep(1.2)
-    pg.locator("[data-add]").nth(3).click(); time.sleep(.3)
+    pg.locator(".btn-add").nth(3).click(); time.sleep(.4); pg.click("[data-madd]"); time.sleep(.3)
     pg.click("#link-carrinho"); time.sleep(1.2); snap("4-pedido-sem-login", full_page=True)
     # pedido sem login -> whatsapp
     pg.evaluate("()=>{window.__urls=[];window.open=(u)=>{window.__urls.push(u);return null;}}"); pg.click("[data-sem-login]"); time.sleep(.4); snap("4b-sem-login-form")
@@ -35,7 +35,7 @@ def roda(nome, launcher, fotos):
     print(nome,"cadastro:", pg.locator("text=100% completo").count()>0, "| voucher:", pg.locator("text=CADASTRO5").count()>0); snap("9-conta-completa", full_page=True)
     # novo pedido com CADASTRO5
     pg.goto((SITE/"index.html").as_uri(), wait_until="domcontentloaded"); time.sleep(1.2); print(nome,"recomendados:", pg.locator("#recomendados").count(), "| área conta:", pg.locator("#area-conta").inner_text().strip())
-    pg.locator("[data-add]").first.click(); time.sleep(.3); pg.goto((SITE/"pedido.html").as_uri(), wait_until="domcontentloaded"); time.sleep(1)
+    pg.locator(".btn-add").first.click(); time.sleep(.4); pg.click("[data-madd]"); time.sleep(.3); pg.goto((SITE/"pedido.html").as_uri(), wait_until="domcontentloaded"); time.sleep(1)
     pg.fill("[data-cupom]","cadastro5"); pg.click("[data-aplicar-cupom]"); time.sleep(.3); print(nome,"CADASTRO5 aplicado:", pg.locator("text=CADASTRO5 · -5%").count()>0)
     # sair e entrar
     pg.goto((SITE/"conta.html").as_uri(), wait_until="domcontentloaded"); time.sleep(.8); pg.click("[data-sair]"); time.sleep(1.2); pg.click('#area-conta [data-abrir-login]'); time.sleep(.3); pg.fill('[data-form="entrar"] [name="cpf"]',"52998224725"); pg.fill('[data-form="entrar"] [name="senha"]',"errada"); pg.click('[data-form="entrar"] .btn-s'); time.sleep(.3); print(nome,"senha errada:", pg.locator("[data-erro]").inner_text()); pg.fill('[data-form="entrar"] [name="senha"]',"1234"); pg.click('[data-form="entrar"] .btn-s'); time.sleep(.6); print(nome,"relogado:", pg.evaluate("()=>!!Conta.atual()"))

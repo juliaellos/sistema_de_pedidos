@@ -14,7 +14,7 @@
     return '<article class="item-v" data-card="' + p.id + '"><img class="foto" alt="" loading="lazy" decoding="async" src="' + mini(p) + '" data-abrir="' + p.id + '" onerror="if(this.src.indexOf(\'/mini/\')>0){this.src=this.src.replace(\'/mini/\',\'/\');}else{imgFallback(this)}"/>' +
       '<div class="texto"><h3 data-abrir="' + p.id + '">' + esc(p.nome) + "</h3>" + (p.descricao ? '<p class="desc" data-abrir="' + p.id + '">' + esc(p.descricao) + "</p>" : (p.peso ? '<p class="desc">' + esc(p.peso) + "</p>" : "")) + (composicao(p) ? '<p class="leva"><b>Leva:</b> ' + esc(composicao(p)) + "</p>" : "") +
       '<div class="rodape"><span class="preco">' + moeda(p.preco).replace("\u00a0", " ") + '</span><span class="no-pedido' + (n ? "" : " hidden") + '" data-no-pedido="' + p.id + '">' + n + " no pedido</span></div>" +
-      '<div class="acoes">' + stepper(p.id, 1) + '<button type="button" class="btn-add" data-add="' + p.id + '">Adicionar</button></div></div></article>';
+      '<div class="acoes"><button type="button" class="btn-add" data-abrir="' + p.id + '">Adicionar</button></div></div></article>';
   }
   function card(p) {
     if (VERTICAL) return cardVertical(p);
@@ -23,7 +23,7 @@
       (p.descricao ? '<p class="desc" data-abrir="' + p.id + '">' + esc(p.descricao) + "</p>" : (p.peso ? '<p class="desc">' + esc(p.peso) + "</p>" : "")) +
       (composicao(p) ? '<p class="leva"><b>Leva:</b> ' + esc(composicao(p)) + "</p>" : "") +
       '<div class="rodape"><span class="preco">' + moeda(p.preco).replace(" ", " ") + '</span><span class="no-pedido' + (n ? "" : " hidden") + '" data-no-pedido="' + p.id + '">' + n + " no pedido</span>" +
-      '<span class="flex items-center gap-2">' + stepper(p.id, 1) + '<button type="button" class="btn-add" data-add="' + p.id + '">Adicionar</button></span></div></div>' +
+      '<button type="button" class="btn-add" data-abrir="' + p.id + '">Adicionar</button></div></div>' +
       '<img class="foto" alt="" loading="lazy" decoding="async" src="' + mini(p) + '" data-abrir="' + p.id + '" onerror="if(this.src.indexOf(\'/mini/\')>0){this.src=this.src.replace(\'/mini/\',\'/\');}else{imgFallback(this)}"/></article>';
   }
   const secao = (id, titulo, lista) => '<section class="secao scroll-mt-32" id="' + id + '" data-category="' + esc(titulo) + '"><h2>' + esc(titulo) + '</h2>' + (lista.length ? '<div class="' + (VERTICAL ? "grade-v" : "grade") + '">' + lista.map(card).join("") + "</div>" : '<p class="text-sm" style="color:var(--cinza)">Em breve nesta unidade.</p>') + "</section>";
@@ -63,16 +63,15 @@
     const atualiza = () => { tot.textContent = moeda(p.preco * lerStepper(st)).replace(" ", " "); };
     m.addEventListener("click", (e) => {
       if (e.target === m || e.target.closest("[data-fechar]")) return fecharModal();
-      const a = e.target.closest("[data-acao]"); if (a) { const v = lerStepper(st); st.querySelector("input").value = Math.max(1, Math.min(99, v + (a.dataset.acao === "mais" ? 1 : -1))); atualiza(); return; }
+      const a = e.target.closest("[data-acao]"); if (a) { setStepper(st, lerStepper(st) + (a.dataset.acao === "mais" ? 1 : -1)); atualiza(); return; }
       if (e.target.closest("[data-madd]")) { adicionar(p, lerStepper(st)); fecharModal(); }
     });
-    m.addEventListener("input", atualiza);
   }
   function fecharModal() { const m = document.getElementById("modal-produto"); if (m) { m.remove(); document.body.style.overflow = ""; } }
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharModal(); });
   function adicionar(p, q) {
     Carrinho.adicionar(p.id, q); toast("Adicionado ao pedido", p.nome + (q > 1 ? " (" + q + " un.)" : ""));
-    document.querySelectorAll('[data-card="' + p.id + '"]').forEach((w) => { const b = w.querySelector("[data-add]"); b.classList.add("ok"); b.textContent = "Adicionado"; setTimeout(() => { b.classList.remove("ok"); b.textContent = "Adicionar"; }, 1200); setStepper(w.querySelector("[data-stepper]"), 1); });
+    document.querySelectorAll('[data-card="' + p.id + '"]').forEach((w) => { const b = w.querySelector(".btn-add"); if (!b) return; b.classList.add("ok"); b.textContent = "Adicionado"; setTimeout(() => { b.classList.remove("ok"); b.textContent = "Adicionar"; }, 1200); });
   }
   const atualizarSelos = () => document.querySelectorAll("[data-no-pedido]").forEach((s) => { const q = Carrinho.quantidade(s.dataset.noPedido); s.textContent = q + " no pedido"; s.classList.toggle("hidden", !q); });
 
