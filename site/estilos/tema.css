@@ -217,3 +217,8 @@ body:has(#barra-carrinho) .whats-flutuante{bottom:5.5rem}
   .item-v .foto{border-radius:4px}
   .item-v .texto{padding:.7rem 0 .8rem}
 }
+
+/* sacola: itens sem caixa, separados por linha fina */
+#itens article{border:0;border-radius:0;border-bottom:1px solid var(--linha-suave);padding:1rem 0;background:transparent}
+#itens article:first-child{padding-top:0}
+#itens article img{border-radius:4px}
