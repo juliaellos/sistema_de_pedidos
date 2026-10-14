@@ -46,14 +46,10 @@
 
   // ---------- barra flutuante do carrinho ----------
   function barra() {
-    let el = document.getElementById("barra-carrinho");
-    const n = Carrinho.totalItens();
+    let el = document.getElementById("barra-carrinho"); const n = Carrinho.totalItens();
     if (!n || document.body.dataset.semBarra) { if (el) el.remove(); return; }
-    if (!el) { el = document.createElement("div"); el.id = "barra-carrinho"; el.className = "fixed inset-x-0 bottom-0 z-50 px-3 pb-3 md:px-6 md:pb-6"; document.body.appendChild(el); }
-    el.innerHTML = '<div class="mx-auto flex max-w-2xl items-center gap-3 rounded-md border border-border bg-card p-3 shadow-xl">' +
-      '<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">' + icone("shopping-bag", "h-5 w-5") + "</div>" +
-      '<div class="min-w-0 flex-1"><p class="text-sm font-bold">' + n + (n === 1 ? " item" : " itens") + '</p><p class="text-sm text-muted-foreground">' + moeda(Carrinho.subtotal()) + "</p></div>" +
-      '<a class="' + BTN + ' bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shrink-0" href="pedido.html">Ver pedido</a></div>';
+    if (!el) { el = document.createElement("div"); el.id = "barra-carrinho"; document.body.appendChild(el); }
+    el.innerHTML = '<div class="dentro"><div><div style="font-weight:500">' + n + (n === 1 ? " item" : " itens") + '</div><div style="font-size:.85rem;color:var(--cinza)">' + moeda(Carrinho.subtotal()) + '</div></div><a class="ver" href="pedido.html">Ver pedido</a></div>';
   }
   window.atualizarBarraCarrinho = barra;
 
@@ -70,15 +66,16 @@
 
   // ---------- cabeçalho do site ----------
   window.renderTopo = function (el, opts) {
-    opts = opts || {};
-    el.className = "topo-site"; 
-    el.innerHTML = '<div class="container mx-auto flex h-16 items-center justify-between gap-3 px-4">' +
-      (opts.voltar ? '<a class="flex items-center gap-2 font-bold text-foreground hover:text-primary" href="' + opts.voltar + '">' + icone("arrow-left", "h-5 w-5") + "<span>" + esc(opts.voltarRotulo || "Voltar") + "</span></a>" : "") +
-      '<a class="marca" href="index.html"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/><span>' + (opts.titulo ? esc(opts.titulo) : "Bread King") + "<small>" + esc(U.nome) + " · delivery</small></span></a>" +
-      '<div class="flex items-center gap-2"><a class="btn-meus-pedidos" href="acompanhamento.html">' + icone("package", "h-4 w-4") + '<span class="hidden sm:inline">Meus pedidos</span></a>' +
-      '<a class="link-carrinho" href="pedido.html" id="link-carrinho">' + icone("shopping-bag", "h-4 w-4") + '<span class="hidden sm:inline">Pedido</span><span class="n">' + Carrinho.totalItens() + "</span></a></div></div>";
+    opts = opts || {}; el.className = "topo-site";
+    const pag = location.pathname.split("/").pop() || "index.html";
+    el.innerHTML = '<div class="container mx-auto px-4 barra">' +
+      '<a class="marca" href="index.html"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/><span>Bread King<small>' + esc(U.nome) + "</small></span></a>" +
+      '<nav><a href="index.html" class="' + (pag === "index.html" ? "ativa" : "") + '">Cardápio</a><a href="acompanhamento.html" class="' + (pag === "acompanhamento.html" ? "ativa" : "") + '">Meus pedidos</a></nav>' +
+      '<div class="direita"><span id="area-conta"></span>' +
+      '<a class="link-carrinho" href="pedido.html" id="link-carrinho">' + icone("shopping-bag") + '<span><span class="v" data-cv>' + moeda(Carrinho.subtotal()) + '</span><span class="n" data-cn>' + Carrinho.totalItens() + (Carrinho.totalItens() === 1 ? " item" : " itens") + "</span></span></a></div></div>";
+    if (window.Conta) Conta.renderArea();
   };
-  function atualizarLinkCarrinho() { const n = document.querySelector("#link-carrinho .n"); if (n) n.textContent = Carrinho.totalItens(); }
+  function atualizarLinkCarrinho() { const v = document.querySelector("[data-cv]"), n = document.querySelector("[data-cn]"); if (v) v.textContent = moeda(Carrinho.subtotal()); if (n) n.textContent = Carrinho.totalItens() + (Carrinho.totalItens() === 1 ? " item" : " itens"); }
 
   // ---------- horário de funcionamento ----------
   const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
@@ -99,7 +96,8 @@
       '<div class="caixa-info"><b>' + esc(U.nomeCompleto) + '</b><p>' + esc(U.sobre || "") + '</p><ul style="margin:.6rem 0 0;padding:0">' +
       '<li>' + icone("check") + 'Pague no site e acompanhe o pedido em tempo real</li><li>' + icone("check") + 'Entrega em Palhoça com taxa por bairro</li><li>' + icone("check") + 'Retirada na loja sem taxa</li></ul></div>' +
       '<h4>Endereço</h4><p>' + esc(U.endereco) + '<br/>' + esc(U.bairro) + ' · ' + esc(U.cidade) + '</p><p><a class="text-primary font-semibold" href="' + U.mapa + '" target="_blank" rel="noopener">Ver no mapa</a></p>' +
-      '<h4>Contato</h4><p>WhatsApp ' + esc(U.whatsappFormatado) + '</p>' +
+      '<h4>Redes sociais</h4><p><a class="inline-flex items-center gap-2 text-primary font-semibold" href="' + esc(U.instagram) + '" target="_blank" rel="noopener">' + icone("instagram", "h-4 w-4") + esc(U.instagramUsuario || "Instagram") + '</a></p>' +
+      '<h4>Contato</h4><p><a class="inline-flex items-center gap-2" href="' + linkWhats() + '" target="_blank" rel="noopener"><span class="h-4 w-4" style="color:#25D366">' + LOGO_WHATS + '</span>WhatsApp ' + esc(U.whatsappFormatado) + '</a></p>' +
       '<h4>Outras informações</h4><p>CNPJ: ' + esc(U.cnpj || "—") + '</p><p>Pedido mínimo: ' + moeda(U.pedidoMinimo || 0) + '</p>';
     const horario = '<table class="horarios">' + DIAS.map((d, i) => '<tr class="' + (i === hoje ? "hoje" : "") + '"><td>' + (i === hoje ? icone("clock", "inline h-3.5 w-3.5 mr-1 text-primary") : "") + d + "</td><td>" + fmtFaixas((U.horarios || {})[i]) + "</td></tr>").join("") + "</table>";
     f.innerHTML = '<div class="gaveta-loja" role="dialog" aria-modal="true"><button class="fechar" aria-label="Fechar" data-fechar>' + icone("x", "h-6 w-6") + '</button>' +
@@ -116,32 +114,21 @@
 
   // ---------- hero da loja ----------
   window.renderHeroLoja = function (el) {
-    const st = estaAberto(); let m;
-    el.innerHTML = '<div class="container mx-auto px-4 loja-hero"><img class="loja-banner" src="' + esc(U.banner || "imagens/marca/banner-loja.jpg") + '" alt="' + esc(U.nomeCompleto) + '"/>' +
-      '<div class="loja-cab"><div class="loja-logo"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></div><div><h1 class="loja-nome">' + esc(U.nomeCompleto.replace("Bread King ", "Bread King - ")) + '<span class="selo" title="Loja oficial">' + icone("star", "h-5 w-5 fill-current") + "</span>" + ((m = BK.mediaAvaliacoes()) ? '<span class="text-base font-bold text-secondary" title="' + m.n + ' avaliações">★ ' + m.media.toFixed(1) + "</span>" : "") + "</h1>" +
-      '<div class="loja-meta"><span class="' + (st.aberto ? "aberto" : "fechado") + '">' + (st.aberto ? "Aberto agora · fecha às " + st.fecha : "Fechado agora" + (st.abre ? " · abre às " + st.abre : "")) + '</span><span>·</span><span>Entrega e retirada</span><span>·</span><span>' + esc(U.bairro) + ", " + esc(U.cidade) + '</span></div></div>' +
+    const st = estaAberto(); const m = BK.mediaAvaliacoes();
+    el.innerHTML = '<div class="container mx-auto px-4 loja-hero"><img class="loja-banner" src="' + esc(U.banner || "imagens/marca/banner-loja.jpg") + '" alt=""/>' +
+      '<div class="loja-cab"><div class="loja-logo"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></div><div><h1 class="loja-nome">' + esc(U.nomeCompleto.replace("Bread King ", "Bread King - ")) + '<span class="selo" title="Loja oficial">' + icone("star", "fill-current") + "</span>" + (m ? '<span class="nota">★ ' + m.media.toFixed(1) + "</span>" : "") + "</h1>" +
+      '<div class="loja-meta"><span class="' + (st.aberto ? "aberto" : "fechado") + '">' + (st.aberto ? "Aberto · fecha às " + st.fecha : "Fechado" + (st.abre ? " · abre às " + st.abre : "")) + "</span><span>·</span><span>Entrega e retirada</span></div></div>" +
       '<div class="loja-acoes"><button class="btn-vermais" data-ver-mais="sobre">Ver mais</button></div></div>' +
-      '<div class="loja-busca">' + icone("search") + '<input id="busca" type="search" placeholder="Buscar no cardápio"/></div></div>';
+      '<div class="loja-busca">' + icone("search") + '<input id="busca" type="search" placeholder="Buscar no cardápio"/></div></div><div class="faixa-cinza"></div>';
   };
 
   // ---------- rodapé ----------
   window.renderRodape = function (el) {
-    el.innerHTML = '<div class="container mx-auto px-4 py-16"><div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12">' +
-      '<div class="lg:col-span-2"><img alt="Bread King" class="h-14 mb-4" src="imagens/marca/logo-bread-king.png"/>' +
-      '<p class="text-white/70 max-w-md mb-6">A primeira padaria de supercongelados do Brasil.</p>' +
-      '<div class="flex gap-4">' +
-      '<a class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors" href="' + U.instagram + '" target="_blank" rel="noopener" aria-label="Instagram">' + icone("instagram", "h-5 w-5") + "</a>" +
-      '<a class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors" href="' + linkWhats() + '" target="_blank" rel="noopener" aria-label="WhatsApp"><span class="h-5 w-5">' + LOGO_WHATS + "</span></a>" +
-      '<a class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors" href="mailto:' + U.email + '" aria-label="E-mail">' + icone("mail", "h-5 w-5") + "</a></div></div>" +
-      '<div><h4 class="font-bold text-lg mb-4">Links Rápidos</h4><ul class="space-y-3">' +
-      '<li><a class="text-white/70 hover:text-white transition-colors" href="index.html">Cardápio</a></li>' +
-      '<li><a class="text-white/70 hover:text-white transition-colors" href="acompanhamento.html">Meus pedidos</a></li>' +
-      '<li><a class="text-white/70 hover:text-white transition-colors" href="#" data-ver-mais>Horário e informações</a></li></ul></div>' +
-      '<div><h4 class="font-bold text-lg mb-4">Contato</h4><ul class="space-y-4">' +
-      '<li class="flex items-start gap-3"><span class="h-5 w-5 text-[#25D366] mt-0.5 shrink-0">' + LOGO_WHATS + '</span><div><p class="font-medium">WhatsApp</p><a class="text-white/70 hover:text-white transition-colors" href="' + linkWhats() + '" target="_blank" rel="noopener">' + U.whatsappFormatado + "</a></div></li>" +
-      '<li class="flex items-start gap-3">' + icone("map-pin", "h-5 w-5 text-primary mt-0.5") + '<div><p class="font-medium">Endereço</p><p class="text-white/70">' + esc(U.endereco) + "<br/>" + esc(U.bairro + ", " + U.cidade) + "</p></div></li></ul></div></div>" +
-      '<div class="h-px bg-white/10 my-8"></div>' +
-      '<div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-white/50"><p>© ' + new Date().getFullYear() + " " + esc(U.nomeCompleto) + '. Todos os direitos reservados.</p><p class="flex items-center gap-1">Feito com ' + icone("heart", "h-4 w-4 text-primary fill-primary") + " em " + esc(U.nome) + "</p></div></div>";
+    el.className = "rodape-site";
+    el.innerHTML = '<div class="container mx-auto px-4"><div class="cols"><div><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/><p>A primeira padaria de supercongelados do Brasil.</p></div>' +
+      '<div><h5>Navegação</h5><a href="index.html">Cardápio</a><a href="acompanhamento.html">Meus pedidos</a><a href="#" data-ver-mais="horario">Horário e informações</a></div>' +
+      '<div><h5>Contato</h5><a href="' + linkWhats() + '" target="_blank" rel="noopener">WhatsApp ' + esc(U.whatsappFormatado) + '</a><span style="display:block;padding:.2rem 0">' + esc(U.endereco) + "<br/>" + esc(U.bairro + ", " + U.cidade) + "</span></div></div>" +
+      '<div class="base"><span>© ' + new Date().getFullYear() + " " + esc(U.nomeCompleto) + ". Todos os direitos reservados.</span><span>Pagamento no site · Entrega e retirada</span></div></div>";
   };
 
   // ---------- card da loja (seção Nossa Loja) ----------
@@ -162,7 +149,7 @@
     document.querySelectorAll("[data-whats-href]").forEach((e) => { e.href = linkWhats(e.dataset.whatsHref || ""); });
     const t = document.getElementById("topo"); if (t) renderTopo(t, { voltar: t.dataset.voltar, voltarRotulo: t.dataset.voltarRotulo, titulo: t.dataset.titulo });
     const hl = document.getElementById("hero-loja"); if (hl) renderHeroLoja(hl);
-    const f = document.querySelector("footer.footer-gradient"); if (f) renderRodape(f);
+    const f = document.querySelector("footer"); if (f && !f.dataset.manual) renderRodape(f);
     const l = document.getElementById("loja-card"); if (l) renderLoja(l);
     if (!document.body.dataset.semWhats) botaoWhatsFlutuante();
     barra();

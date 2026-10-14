@@ -2,7 +2,7 @@
 // Chaves: bk_db_produtos (catálogo editável), bk_db_pedidos, bk_db_config (ajustes da unidade), bk_db_log.
 (function () {
   const U = window.UNIDADE;
-  const K = { produtos: "bk_db_produtos", pedidos: "bk_db_pedidos", config: "bk_db_config", cupons: "bk_db_cupons", campanhas: "bk_db_campanhas", avaliacoes: "bk_db_avaliacoes", versao: "bk_db_versao" };
+  const K = { produtos: "bk_db_produtos", pedidos: "bk_db_pedidos", config: "bk_db_config", cupons: "bk_db_cupons", campanhas: "bk_db_campanhas", avaliacoes: "bk_db_avaliacoes", contas: "bk_db_contas", modelos: "bk_db_modelos", versao: "bk_db_versao" };
   const ler = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const gravar = (k, v) => { localStorage.setItem(k, JSON.stringify(v)); document.dispatchEvent(new CustomEvent("banco:mudou", { detail: k })); };
   const CATEGORIAS = ["Combos", "Confeitaria", "Padaria", "Pizzas", "Salgados", "Sem Glúten e Sem Lactose", "Sopas", "Tortas Especiais"];
@@ -52,11 +52,12 @@
         c.modalidades[p.modalidade] = (c.modalidades[p.modalidade] || 0) + 1;
         p.itens.forEach((i) => { c.produtos[i.id] = (c.produtos[i.id] || 0) + i.qtd; const pr = BK.produto(i.id); const cat = pr ? pr.categoria : (i.categoria || "Outros"); c.categorias[cat] = (c.categorias[cat] || 0) + i.qtd; });
       });
+      ler(K.contas, []).forEach((a) => { const c = m[a.telefone] || (m[a.telefone] = { telefone: a.telefone, nome: a.nome, email: a.email, nascimento: "", pedidos: [], total: 0, bairros: {}, modalidades: {}, produtos: {}, categorias: {}, cupons: 0 }); c.conta = a; c.nome = a.nome || c.nome; c.email = a.email || c.email; if (a.nascimento) c.nascimento = a.nascimento; c.genero = a.genero || ""; c.cadastroPct = BK.completudeConta(a).pct; if (a.bairro && !Object.keys(c.bairros).length) c.bairros[a.bairro] = 0; });
       return Object.values(m).map((c) => {
         c.pedidos.sort((a, b) => a.quando.localeCompare(b.quando));
-        c.primeiro = c.pedidos[0].quando; c.ultimo = c.pedidos[c.pedidos.length - 1].quando; c.n = c.pedidos.length; c.ticket = c.total / c.n;
+        c.n = c.pedidos.length; c.primeiro = c.n ? c.pedidos[0].quando : (c.conta ? c.conta.criadaEm : ""); c.ultimo = c.n ? c.pedidos[c.n - 1].quando : (c.conta ? c.conta.criadaEm : ""); c.ticket = c.n ? c.total / c.n : 0; c.idade = BK.idade(c.nascimento); c.cadastroPct = c.cadastroPct || 0;
         c.bairro = Object.keys(c.bairros).sort((a, b) => c.bairros[b] - c.bairros[a])[0] || "";
-        c.diasSemPedido = Math.floor((Date.now() - new Date(c.ultimo)) / 864e5);
+        c.diasSemPedido = c.n ? Math.floor((Date.now() - new Date(c.ultimo)) / 864e5) : 9999;
         if (c.nascimento) { const [y, mo, d] = c.nascimento.split("-").map(Number); const hoje = new Date(); let prox = new Date(hoje.getFullYear(), mo - 1, d); if (prox < new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate())) prox = new Date(hoje.getFullYear() + 1, mo - 1, d); c.mesAniversario = mo; c.diasAteAniversario = Math.round((prox - new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate())) / 864e5); }
         return c;
       });
@@ -82,9 +83,9 @@
     },
 
     // ---- cupons (com validade, limites e mínimo) ----
-    cupons() { let l = ler(K.cupons, null); if (!l) { l = (U.cupons || []).map((c) => Object.assign({ ativo: true, validade: "", limite: 0, umPorCliente: false, minimo: 0, descricao: "" }, c)); gravar(K.cupons, l); } return l; },
+    cupons() { let l = ler(K.cupons, null); if (!l) { l = (U.cupons || []).map((c) => Object.assign({ ativo: true, validade: "", limite: 0, umPorCliente: false, minimo: 0, descricao: "" }, c)); gravar(K.cupons, l); } else { const ids = new Set(l.map((x) => x.codigo)); let mudou = false; (U.cupons || []).forEach((c) => { if (!ids.has(c.codigo) && !ler("bk_db_cupons_excluidos", []).includes(c.codigo)) { l.push(Object.assign({ ativo: true, validade: "", limite: 0, umPorCliente: false, minimo: 0, descricao: "" }, c)); mudou = true; } }); if (mudou) gravar(K.cupons, l); } return l; },
     salvarCupom(c) { const l = this.cupons(); const i = l.findIndex((x) => x.codigo === c.codigo); if (i >= 0) l[i] = c; else l.push(c); gravar(K.cupons, l); },
-    excluirCupom(codigo) { gravar(K.cupons, this.cupons().filter((c) => c.codigo !== codigo)); },
+    excluirCupom(codigo) { const e = ler("bk_db_cupons_excluidos", []); if (!e.includes(codigo)) e.push(codigo); localStorage.setItem("bk_db_cupons_excluidos", JSON.stringify(e)); gravar(K.cupons, this.cupons().filter((c) => c.codigo !== codigo)); },
     usosCupom(codigo, tel) { return ler(K.pedidos, []).filter((p) => p.status !== "cancelado" && p.cupom && p.cupom.codigo === codigo && (!tel || String(p.cliente.telefone).replace(/\D/g, "") === String(tel).replace(/\D/g, ""))).length; },
     validarCupom(codigo, subtotal, tel) {
       codigo = String(codigo || "").trim().toUpperCase(); const c = this.cupons().find((x) => x.codigo === codigo);
@@ -95,8 +96,33 @@
       if (c.limite && this.usosCupom(codigo) >= c.limite) return { erro: "Esse cupom já atingiu o limite de usos." };
       if (c.umPorCliente && tel && this.usosCupom(codigo, tel) > 0) return { erro: "Você já usou esse cupom." };
       if (c.minimo && subtotal < c.minimo) return { erro: "Esse cupom vale pra pedidos a partir de R$ " + c.minimo.toFixed(2).replace(".", ",") + "." };
+      const conta = tel ? this.contaPorTelefone(tel) : null;
+      if (c.exigeLogin && !conta) return { erro: "Esse cupom é pra quem tem conta no site. Entre ou crie sua conta." };
+      if (c.primeiraCompra && tel && ler(K.pedidos, []).some((p) => p.status !== "cancelado" && String(p.cliente.telefone).replace(/\D/g, "") === String(tel).replace(/\D/g, ""))) return { erro: "Esse cupom vale só pra primeira compra no site." };
+      if (c.exigeCadastroCompleto && !(conta && this.completudeConta(conta).pct === 100)) return { erro: "Esse cupom é liberado quando o cadastro está 100% completo." };
       return { cupom: c };
     },
+    // ---- contas de cliente (CPF + senha; simulação, senha guardada só neste navegador) ----
+    CAMPOS_PERFIL: [["nome", "Nome completo"], ["telefone", "Telefone"], ["email", "E-mail"], ["cpf", "CPF"], ["nascimento", "Data de nascimento"], ["genero", "Gênero"], ["endereco", "Endereço"], ["bairro", "Bairro"], ["comoConheceu", "Como conheceu a Bread King"], ["preferencias", "O que mais gosta de pedir"]],
+    contas: () => ler(K.contas, []),
+    contaPorCpf(cpf) { cpf = String(cpf || "").replace(/\D/g, ""); return ler(K.contas, []).find((c) => c.cpf === cpf); },
+    contaPorTelefone(tel) { tel = String(tel || "").replace(/\D/g, ""); return ler(K.contas, []).find((c) => c.telefone === tel); },
+    salvarConta(c) { c.cpf = String(c.cpf).replace(/\D/g, ""); c.telefone = String(c.telefone).replace(/\D/g, ""); const l = ler(K.contas, []); const i = l.findIndex((x) => x.cpf === c.cpf); if (i >= 0) l[i] = Object.assign(l[i], c); else { c.criadaEm = new Date().toISOString(); l.push(c); } gravar(K.contas, l); return c; },
+    completudeConta(c) { const faltam = this.CAMPOS_PERFIL.filter(([k]) => !(c && String(c[k] || "").trim())); return { pct: Math.round((this.CAMPOS_PERFIL.length - faltam.length) / this.CAMPOS_PERFIL.length * 100), faltam: faltam.map((x) => x[1]) }; },
+    idade(nasc) { if (!nasc) return null; const d = new Date(nasc); const h = new Date(); let a = h.getFullYear() - d.getFullYear(); if (h < new Date(h.getFullYear(), d.getMonth(), d.getDate())) a--; return a; },
+    // ---- modelos de mensagem (campanhas); "origem" marca de quem é o modelo (unidade ou franqueadora) ----
+    MODELOS_PADRAO: [
+      { id: "m-reativacao", nome: "Reativação com cupom", categoria: "Reativação", origem: "franqueadora", texto: "Oi, {nome}! Faz tempo que você não pede na {loja}. Que tal um pão quentinho hoje? Use {cupom} e ganhe desconto no site: {site}" },
+      { id: "m-aniversario", nome: "Feliz aniversário", categoria: "Datas", origem: "franqueadora", texto: "Oi, {nome}! A {loja} deseja um feliz aniversário 🎂 Pra comemorar, seu cupom {cupom} vale a semana toda." },
+      { id: "m-lancamento", nome: "Lançamento de produto", categoria: "Lançamento", origem: "franqueadora", texto: "Oi, {nome}! Chegou novidade na {loja}: {produto}. Já está no cardápio do site: {site}" },
+      { id: "m-vip", nome: "Cliente VIP", categoria: "Fidelidade", origem: "franqueadora", texto: "Oi, {nome}! Você é um dos clientes que mais pede na {loja}. Obrigado! Como agradecimento, {cupom} vale 15% no seu próximo pedido." },
+      { id: "m-dia-das-maes", nome: "Dia das Mães", categoria: "Datas", origem: "franqueadora", texto: "Oi, {nome}! Café da manhã especial pro Dia das Mães? Combos prontos na {loja}, é só assar. Peça no site: {site}" },
+      { id: "m-fim-de-semana", nome: "Lembrete de fim de semana", categoria: "Recorrência", origem: "unidade", texto: "Oi, {nome}! Sexta chegou. Já garantiu o pão de queijo do fim de semana? Peça até as 18h e receba hoje: {site}" }
+    ],
+    modelos() { let l = ler(K.modelos, null); if (!l) { l = this.MODELOS_PADRAO.slice(); gravar(K.modelos, l); } return l; },
+    salvarModelo(m) { const l = this.modelos(); const i = l.findIndex((x) => x.id === m.id); if (i >= 0) l[i] = m; else l.push(m); gravar(K.modelos, l); },
+    excluirModelo(id) { gravar(K.modelos, this.modelos().filter((m) => m.id !== id)); },
+
     // ---- campanhas (disparos pra públicos) ----
     campanhas: () => ler(K.campanhas, []),
     salvarCampanha(c) { const l = ler(K.campanhas, []); const i = l.findIndex((x) => x.id === c.id); if (i >= 0) l[i] = c; else l.push(c); gravar(K.campanhas, l); },

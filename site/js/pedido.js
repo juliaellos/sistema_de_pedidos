@@ -45,6 +45,13 @@
     return L.join("\n");
   }
 
+  function mensagemSemLogin() {
+    const L = ["Olá! Quero fazer um pedido na " + U.nomeCompleto + ".", "", "Unidade: " + U.nome, "", "Pedido:"];
+    Carrinho.itens().forEach((i) => L.push("•  " + i.produto.nome.trim() + "  – Qtd " + i.quantidade + " – " + moeda(i.produto.preco * i.quantidade).replace("\u00a0", " ")));
+    L.push("", "Total estimado: " + moeda(Carrinho.subtotal()).replace("\u00a0", " "), "", "Vou te passar meu nome, endereço e forma de pagamento aqui no WhatsApp.");
+    return L.join("\n");
+  }
+
   // ---------- itens ----------
   function renderItens() {
     const itens = Carrinho.itens(); const el = document.getElementById("itens");
@@ -62,8 +69,27 @@
   }
 
   // ---------- resumo / formulário ----------
+  function aplicarContaNoEstado() {
+    const c = Conta.atual(); if (!c) return;
+    estado.nome = c.nome; estado.email = c.email; estado.telefone = c.telefone; estado.nascimento = c.nascimento || estado.nascimento; if (!estado.endereco && c.endereco) estado.endereco = c.endereco; if (!estado.bairro && c.bairro) estado.bairro = c.bairro;
+    // SITE10 na primeira compra, aplicado sozinho
+    const v = BK.validarCupom("SITE10", Carrinho.subtotal(), c.telefone); if (!estado.cupom && !estado.cupomRemovido && v.cupom) estado.cupom = { codigo: v.cupom.codigo, desconto: v.cupom.desconto, automatico: true };
+  }
   function renderResumo() {
-    const t = totais(); const el = document.getElementById("resumo"); const entrega = estado.modalidade === "entrega";
+    aplicarContaNoEstado();
+    const t = totais(); const el = document.getElementById("resumo"); const entrega = estado.modalidade === "entrega"; const conta = Conta.atual();
+    if (!conta) {
+      const cupom = BK.cupons().find((x) => x.codigo === "SITE10" && x.ativo !== false);
+      el.innerHTML = '<h2 class="text-xl" style="font-weight:500">Finalizar pedido</h2>' +
+        '<p class="sub" style="margin:.5rem 0 1rem">Entre ou crie sua conta pra pagar no site e acompanhar o pedido em tempo real.</p>' +
+        (cupom ? '<div class="aviso-cupom" style="margin-bottom:1rem">' + icone("tag", "h-5 w-5") + "<span><b>" + cupom.desconto + "% OFF</b> na primeira compra pelo site com o cupom <b>" + cupom.codigo + "</b>, aplicado sozinho pra quem tem conta.</span></div>" : "") +
+        '<button type="button" class="btn-s" data-abrir-login="criar">Criar conta e ganhar ' + (cupom ? cupom.desconto + "% OFF" : "") + '</button><button type="button" class="btn-s sec" style="margin-top:.6rem" data-abrir-login="entrar">Já tenho conta</button>' +
+        '<div style="display:flex;align-items:center;gap:.75rem;margin:1.25rem 0;color:var(--cinza-claro);font-size:.8rem"><span style="flex:1;height:1px;background:var(--linha-suave)"></span>ou<span style="flex:1;height:1px;background:var(--linha-suave)"></span></div>' +
+        '<p class="sub" style="margin:0 0 .6rem">Prefere não criar conta? Envie o pedido pelo WhatsApp e combine pagamento e entrega com a loja.</p>' +
+        '<button type="button" class="btn-s whats" data-sem-login' + (Carrinho.totalItens() ? "" : " disabled") + '><span class="h-5 w-5">' + LOGO_WHATS + "</span>Fazer pedido sem login</button>" +
+        '<div class="my-5 space-y-2 border-y border-border py-4"><div class="flex justify-between text-sm text-muted-foreground"><span>Subtotal</span><span>' + moeda(t.subtotal) + '</span></div><div class="flex justify-between text-xl" style="font-weight:500"><span>Total</span><span>' + moeda(t.subtotal) + "</span></div></div>";
+      return;
+    }
     const inp = (nome, ph, ic, tipo, extra) => '<div class="relative">' + icone(ic, "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground") + '<input data-campo="' + nome + '" type="' + (tipo || "text") + '" ' + (extra || "") + ' class="flex w-full rounded-md border border-input px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm h-12 bg-background pl-11" placeholder="' + ph + '" value="' + esc(estado[nome]) + '"/></div>';
     const pago = !!estado.pagamento;
     el.innerHTML = '<h2 class="text-xl font-extrabold">Finalizar pedido</h2>' +
@@ -71,15 +97,14 @@
       '<button type="button" data-modalidade="retirada" class="' + (entrega ? B.outline : B.primary) + ' px-4 py-2 h-12">' + icone("store") + "Retirada</button>" +
       '<button type="button" data-modalidade="entrega" class="' + (entrega ? B.primary : B.outline) + ' px-4 py-2 h-12">' + icone("truck") + "Entrega</button></div>" +
       '<div class="mt-5 space-y-1.5"><label class="text-sm font-semibold">Unidade Bread King</label><div class="flex h-12 w-full items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm">' + icone("map-pin", "h-4 w-4 text-primary") + esc(U.nome) + " · " + esc(U.endereco) + "</div></div>" +
-      '<div class="mt-5 space-y-3"><p class="text-sm font-semibold">' + (entrega ? "Dados para entrega" : "Seus dados") + "</p>" +
-      inp("nome", "Seu nome", "user", "text", 'autocomplete="name"') + inp("email", "Seu e-mail", "mail", "email", 'autocomplete="email"') + inp("telefone", "Seu telefone", "phone", "tel", 'autocomplete="tel" inputmode="tel"') +
-      '<div class="relative">' + icone("sparkles", "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground") + '<input data-campo="nascimento" type="date" class="flex w-full rounded-md border border-input px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm h-12 bg-background pl-11" value="' + esc(estado.nascimento) + '" aria-label="Data de nascimento"/><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">nascimento (opcional)</span></div>' +
+      '<div class="mt-5 space-y-3"><div class="flex items-center justify-between"><p class="text-sm font-semibold">' + (entrega ? "Dados para entrega" : "Seus dados") + '</p><a class="link-s" href="conta.html" style="font-size:.8rem">Minha conta</a></div>' +
+      '<div class="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm"><b style="font-weight:500">' + esc(conta.nome) + '</b><br/><span class="text-muted-foreground">' + esc(conta.telefone) + " · " + esc(conta.email) + "</span></div>" +
       (entrega ? '<div class="relative">' + icone("map-pin", "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground") + '<select data-campo="bairro" class="flex h-12 w-full appearance-none rounded-md border border-input bg-background pl-11 pr-10 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2' + (estado.bairro ? "" : " text-muted-foreground") + '"><option value="">Seu bairro (calcula a taxa)</option>' + U.taxasEntrega.map((x) => '<option value="' + esc(x.bairro) + '"' + (x.bairro === estado.bairro ? " selected" : "") + ">" + esc(x.bairro) + " — " + moeda(x.taxa) + "</option>").join("") + "</select>" + icone("chevron-down", "pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50") + "</div>" +
         inp("endereco", "Endereço completo (rua, número, complemento)", "map-pin", "text", 'autocomplete="street-address"') +
         '<p class="text-xs text-muted-foreground">' + esc(U.textoEntrega) + "</p>"
         : '<p class="text-xs text-muted-foreground">' + esc(U.textoRetirada) + " " + esc(U.horario) + ".</p>") + "</div>" +
       '<div class="mt-5 space-y-2"><label class="text-sm font-semibold">Cupom de desconto</label>' +
-      (estado.cupom ? '<div class="flex items-center justify-between rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm"><span class="flex items-center gap-2 font-semibold text-green-700">' + icone("tag") + esc(estado.cupom.codigo) + " · -" + estado.cupom.desconto + '%</span><button type="button" data-tirar-cupom class="text-xs text-muted-foreground underline">remover</button></div>'
+      (estado.cupom ? '<div class="flex items-center justify-between rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm"><span class="flex items-center gap-2 font-semibold text-green-700">' + icone("tag") + esc(estado.cupom.codigo) + " · -" + estado.cupom.desconto + "%" + (estado.cupom.automatico ? ' <span class="text-xs font-normal">(primeira compra, aplicado sozinho)</span>' : "") + '</span><button type="button" data-tirar-cupom class="text-xs text-muted-foreground underline">trocar</button></div>'
         : '<div class="flex gap-2"><div class="relative flex-1">' + icone("tag", "pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground") + '<input data-cupom type="text" class="flex w-full rounded-md border border-input px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm h-12 bg-background pl-11 uppercase" placeholder="Digite o cupom"/></div><button type="button" data-aplicar-cupom class="' + B.outline + ' px-4 py-2 h-12">Aplicar</button></div><p data-cupom-erro class="hidden text-xs text-destructive"></p>') + "</div>" +
       '<div class="my-5 space-y-2 border-y border-border py-4">' +
       '<div class="flex justify-between text-sm text-muted-foreground"><span>Subtotal</span><span>' + moeda(t.subtotal) + "</span></div>" +
@@ -157,7 +182,7 @@
   // ---------- registro do pedido no banco local e ida pro acompanhamento ----------
   function registrarPedido() {
     const numero = BK.novoNumero(); const agora = new Date().toISOString();
-    const pedido = { numero, quando: agora, cliente: { nome: estado.nome.trim(), email: estado.email.trim(), telefone: estado.telefone.trim(), nascimento: estado.nascimento || "" }, modalidade: estado.modalidade, endereco: estado.modalidade === "entrega" ? estado.endereco.trim() : "", bairro: estado.modalidade === "entrega" ? estado.bairro : "",
+    const pedido = { numero, quando: agora, cliente: { nome: estado.nome.trim(), email: estado.email.trim(), telefone: estado.telefone.trim(), nascimento: estado.nascimento || "", cpf: (Conta.atual() || {}).cpf || "" }, modalidade: estado.modalidade, endereco: estado.modalidade === "entrega" ? estado.endereco.trim() : "", bairro: estado.modalidade === "entrega" ? estado.bairro : "",
       itens: Carrinho.itens().map((i) => ({ id: i.produto.id, nome: i.produto.nome, categoria: i.produto.categoria, qtd: i.quantidade, preco: i.produto.preco })), cupom: estado.cupom, totais: totais(), pagamento: estado.pagamento, status: "pago", historico: [{ status: "pago", quando: agora, obs: "Pagamento " + estado.pagamento.metodo + " (simulado)" }], mensagens: [] };
     BK.salvarPedido(pedido);
     return pedido;
@@ -173,6 +198,7 @@
     });
     document.getElementById("limpar") && document.getElementById("limpar").addEventListener("click", () => { if (Carrinho.totalItens() && confirm("Limpar todos os itens do pedido?")) Carrinho.limpar(); });
     document.addEventListener("carrinho:mudou", () => { estado.pagamento = null; renderItens(); renderResumo(); });
+    document.addEventListener("conta:mudou", () => { estado.pagamento = null; estado.cupom = null; estado.cupomRemovido = false; renderResumo(); });
 
     const res = document.getElementById("resumo");
     res.addEventListener("input", (e) => {
@@ -192,7 +218,8 @@
         const c = { codigo: v.cupom.codigo, desconto: v.cupom.desconto };
         estado.cupom = c; estado.pagamento = null; toast("Cupom aplicado 🎉", "-" + c.desconto + "% com " + c.codigo); renderResumo(); return;
       }
-      if (e.target.closest("[data-tirar-cupom]")) { estado.cupom = null; estado.pagamento = null; renderResumo(); return; }
+      if (e.target.closest("[data-tirar-cupom]")) { estado.cupom = null; estado.cupomRemovido = true; estado.pagamento = null; renderResumo(); return; }
+      if (e.target.closest("[data-sem-login]")) { if (!Carrinho.totalItens()) return; window.open(linkWhats(mensagemSemLogin()), "_blank"); toast("Pedido aberto no WhatsApp", "Combine pagamento e entrega com a loja."); return; }
       const met = e.target.closest("[data-metodo]"); if (met) { estado.metodo = met.dataset.metodo; estado.pixEmAndamento = false; renderPagamento(); atualizarAviso(); return; }
       if (e.target.closest("[data-copiar]")) { const txt = res.querySelector("[data-pix-codigo]").textContent; (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast("Código Pix copiado"), () => toast("Não deu pra copiar automaticamente", "Selecione o código e copie manualmente.", true)); return; }
       if (e.target.closest("[data-pix-pagar]")) { estado.pixEmAndamento = true; renderPagamento(); atualizarAviso(); setTimeout(() => { estado.pixEmAndamento = false; confirmarPagamento("Pix"); }, (U.pagamento.segundosPix || 4) * 1000); return; }

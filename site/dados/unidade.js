@@ -17,7 +17,8 @@ window.UNIDADE = {
   banner: "imagens/marca/banner-loja.jpg",              // trocar pela foto da loja/produtos (1180x250 ou proporção parecida)
   sobre: "A primeira padaria de supercongelados do Brasil. Pães, salgados, pizzas e confeitaria que você assa em casa e ficam perfeitos em minutos.",
   mapa: "https://www.google.com/maps/search/?api=1&query=Av.+At%C3%ADlio+Pedro+Pagani%2C+1275+-+Pagani%2C+Palho%C3%A7a+-+SC",
-  instagram: "https://instagram.com/breadkingsp",
+  instagram: "https://instagram.com/breadkingpalhoca",   // provisório: confirmar o perfil da unidade
+  instagramUsuario: "@breadkingpalhoca",
   email: "contato@breadking.com.br",
   fotoLoja: "imagens/marca/loja-palhoca.jpg", // se o arquivo não existir, o site mostra o logo no lugar
   textoEntrega: "Sim, fazemos entrega! Escolha seu bairro pra ver a taxa. O prazo a gente confirma pelo WhatsApp.",
@@ -51,9 +52,12 @@ window.UNIDADE = {
   ],
   // Cupons válidos (desconto em %). Na Etapa 3 isso vai pro CRM.
   cupons: [
+    { codigo: "SITE10", desconto: 10, descricao: "10% OFF na primeira compra pelo site (precisa de conta)", exigeLogin: true, primeiraCompra: true, umPorCliente: true },
+    { codigo: "CADASTRO5", desconto: 5, descricao: "Voucher de 5% por completar o cadastro (1 por cliente)", exigeLogin: true, exigeCadastroCompleto: true, umPorCliente: true },
     { codigo: "BEMVINDO10", desconto: 10 },
     { codigo: "PALHOCA5", desconto: 5 }
   ],
+  site: "breadkingpalhoca.com.br",   // usado nas mensagens ({site})
   pagamento: {
     simulado: true,
     segundosPix: 4,                      // tempo até o Pix "cair"

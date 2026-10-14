@@ -4,7 +4,7 @@
   const fmtData = (iso) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   const rot = (st) => st === "cancelado" ? "Cancelado" : ((BK.STATUS.find((s) => s.id === st) || {}).rotulo || st);
   const etapas = (p) => BK.STATUS.filter((s) => !(s.soEntrega && p.modalidade !== "entrega") && !(s.soRetirada && p.modalidade !== "retirada"));
-  const meusPedidos = () => { const tel = ((JSON.parse(localStorage.getItem("bk_cliente") || "{}") || {}).telefone || "").replace(/\D/g, ""); return tel ? BK.pedidos().filter((x) => String(x.cliente.telefone).replace(/\D/g, "") === tel).reverse() : []; };
+  const meusPedidos = () => { const c = Conta.atual(); const tel = (c ? c.telefone : ((JSON.parse(localStorage.getItem("bk_cliente") || "{}") || {}).telefone || "")).replace(/\D/g, ""); return tel ? BK.pedidos().filter((x) => String(x.cliente.telefone).replace(/\D/g, "") === tel).reverse() : []; };
   const linha = (x) => '<a href="acompanhamento.html?n=' + x.numero + '"><span><strong>' + x.numero + '</strong> · ' + fmtData(x.quando) + (x.status === "concluido" && !BK.avaliacaoDoPedido(x.numero) ? ' <span class="text-xs font-bold text-secondary">★ avalie</span>' : "") + '<br/><span class="text-sm text-muted-foreground">' + x.itens.map((i) => i.qtd + "× " + esc(i.nome)).slice(0, 3).join(", ") + (x.itens.length > 3 ? "…" : "") + "</span></span><span class=\"flex items-center gap-3\"><strong>" + moeda(x.totais.total) + '</strong><span class="st ' + x.status + '">' + esc(rot(x.status)) + "</span></span></a>";
 
   function renderLista(el) {
@@ -12,7 +12,7 @@
     el.innerHTML = '<p class="eyebrow">Minha conta</p><h1 class="text-3xl font-extrabold md:text-4xl">Meus pedidos</h1>' +
       (meus.length ? '<h2 class="mt-8 mb-3 text-lg font-extrabold">Em andamento</h2><div class="lista-pedidos">' + (andamento.length ? andamento.map(linha).join("") : '<p class="text-sm text-muted-foreground">Nenhum pedido em andamento.</p>') + "</div>" +
         '<h2 class="mt-8 mb-3 text-lg font-extrabold">Anteriores</h2><div class="lista-pedidos">' + (anteriores.length ? anteriores.map(linha).join("") : '<p class="text-sm text-muted-foreground">Nenhum pedido anterior.</p>') + "</div>"
-        : '<div class="mt-6 rounded-2xl border border-dashed border-border bg-card p-10 text-center"><p class="font-bold">Você ainda não tem pedidos neste aparelho.</p><p class="mt-1 text-sm text-muted-foreground">Seus pedidos aparecem aqui assim que o pagamento for confirmado.</p></div>') +
+        : (Conta.atual() ? '<div class="mt-6 cartao-s" style="text-align:center;padding:2.5rem"><p style="font-weight:500">Você ainda não fez pedidos nesta conta.</p><p class="sub" style="margin:.25rem 0 0">Seus pedidos aparecem aqui assim que o pagamento for confirmado.</p></div>' : '<div class="mt-6 cartao-s" style="text-align:center;padding:2.5rem"><p style="font-weight:500">Entre na sua conta pra ver seus pedidos.</p><p class="sub" style="margin:.5rem 0 1rem">Com a conta, o acompanhamento fica salvo mesmo trocando de aba ou de aparelho.</p><button class="btn-s" style="max-width:240px" data-abrir-login="entrar">Entrar</button></div>')) +
       '<a class="' + BTN.primary + ' mt-8 h-11 px-6 rounded-full" href="index.html">' + icone("utensils-crossed") + "Ver cardápio</a>";
   }
   function renderDetalhe(el, p) {
@@ -47,5 +47,5 @@
     if (n && !p) { el.innerHTML = '<div class="rounded-2xl border border-border bg-card p-8 text-center"><p class="font-bold">Não encontramos o pedido ' + esc(n) + '.</p><a class="' + BTN.primary + ' mt-5 h-11 px-6 rounded-full" href="acompanhamento.html">Meus pedidos</a></div>'; return; }
     if (p) { document.title = "Pedido " + p.numero + " | " + UNIDADE.nomeCompleto; renderDetalhe(el, p); } else renderLista(el);
   }
-  document.addEventListener("DOMContentLoaded", () => { render(); setInterval(render, 3000); window.addEventListener("storage", render); });
+  document.addEventListener("DOMContentLoaded", () => { render(); setInterval(() => { if (!document.getElementById("modal-conta")) render(); }, 3000); window.addEventListener("storage", render); document.addEventListener("conta:mudou", render); });
 })();

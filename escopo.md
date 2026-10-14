@@ -1,8 +1,14 @@
 # Escopo — Sistema de delivery web Bread King (franqueados)
 
-**Versão:** 1.5 · **Data:** 13/10/2026 · **Dona do projeto:** Júlia y Castro (Y OS)
+**Versão:** 1.6 · **Data:** 13/10/2026 · **Dona do projeto:** Júlia y Castro (Y OS)
 **Referência visual e funcional:** breadkingsaopaulo.com.br (levantamento em `referencia/levantamento-site-atual.md`)
 **Primeira unidade:** Palhoça (SC) · **WhatsApp de teste:** +55 48 98847-5389
+
+Mudanças da v1.5 → v1.6 (insights da Júlia, 13/10 à noite): visual minimalista estilo iFood
+(Figtree, cards horizontais, sem subtítulos); conta do cliente com CPF e senha pra comprar no
+site, cupom SITE10 na primeira compra; "Fazer pedido sem login" pelo WhatsApp; cadastro completo
+libera voucher CADASTRO5; aba Modelos de mensagem (origem unidade/franqueadora); filtros de
+gênero, idade e cadastro nas segmentações; Instagram no "Ver mais".
 
 Mudanças da v1.4 → v1.5 (13/10, noite): categoria Combos com composição; campo opcional de
 nascimento no pedido e filtros de aniversário; abas Cupons (validade, limites, mínimo), Campanhas
