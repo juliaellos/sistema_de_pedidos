@@ -76,3 +76,25 @@ tr.clicavel{cursor:pointer}tr.clicavel:hover{background:#fafafa}
 .aviso{background:var(--wheat);color:var(--dark);border-radius:4px;padding:.75rem 1rem;font-size:.85rem}
 .vazio{padding:2.5rem;text-align:center;color:var(--muted)}
 @media(max-width:900px){.app{grid-template-columns:1fr}.lateral{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;border-right:0;border-bottom:1px solid var(--line)}.lateral .marca{border:0;margin:0;padding:.25rem}.lateral .rodape{display:none}.conteudo{padding:1.25rem}}
+
+/* configurações: dados fixos, taxas por bairro e públicos salvos (painel da unidade e Franchising) */
+.grade-info{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.6rem}
+.info-fixa{display:flex;flex-direction:column;gap:.15rem;background:var(--wheat);border-radius:4px;padding:.6rem .8rem}
+.info-fixa b{font-weight:500;color:var(--dark);word-break:break-word}
+.tabela-taxas td{padding:.35rem .5rem .35rem 0;border-bottom:0}
+.tabela-taxas input{width:100%;height:2.4rem;border:1px solid var(--line2,#dcdcdc);border-radius:4px;padding:0 .6rem;font:inherit;background:#fff}
+.campo-moeda{display:flex;align-items:center;border:1px solid var(--line2,#dcdcdc);border-radius:4px;background:#fff;padding-left:.6rem}
+.campo-moeda span{color:var(--muted);font-size:.85rem}
+.campo-moeda input{border:0!important;height:2.3rem!important}
+.card-seg.salvo{display:flex;flex-direction:column;gap:.2rem}
+.card-seg .acoes-seg{display:flex;gap:.4rem;margin-top:.5rem}
+.card-seg.editando{border-color:var(--red);box-shadow:0 0 0 1px var(--red)}
+.aviso-edicao{display:grid;grid-template-columns:1fr minmax(220px,320px) auto;gap:.75rem;align-items:end;background:#fdf1f2;border:1px solid #f1c6cc;border-radius:4px;padding:.8rem 1rem;margin-bottom:1rem}
+.aviso-edicao b{display:block;color:var(--red);font-weight:600}
+@media (max-width:760px){.aviso-edicao{grid-template-columns:1fr}}
+
+/* Clientes: cabeçalho ordenável */
+th.ordenavel{cursor:pointer;user-select:none;white-space:nowrap}
+th.ordenavel:hover{color:var(--ink,#222)}
+th.ordenavel .seta{font-size:.7em;opacity:.45}
+th.ordenavel.on .seta{opacity:1}

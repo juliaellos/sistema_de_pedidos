@@ -14,7 +14,7 @@ CRM básico por unidade. Ver `escopo.md`.
 - `escopo.md` — escopo do projeto (documento do cliente)
 - `briefing.md` — pedido original
 - `referencia/levantamento-site-atual.md` — o que o site atual é (stack, rotas, fluxo, paleta)
-- `site/` — o site (cardápio como home, pedido, acompanhamento, sobre) e `site/admin/` (painel, senha `breadking`); HTML/CSS/JS puro, abre com dois cliques em `index.html`; ver `site/README.md`
+- `site/` — o site (cardápio como home, pedido, acompanhamento, sobre), `site/admin/` (painel da unidade, senha `breadking`) e `site/franqueadora/` (painel da franqueadora, senha `franqueadora`, Maringá e Joinville fictícias); HTML/CSS/JS puro, abre com dois cliques em `index.html`; ver `site/README.md`
 - `scripts/` — `capturar_site.py` e `capturar_fluxo.py` (captura do site original com Playwright), `testar_clone.py` (teste ponta a ponta do clone, capturas em `tmp/`)
 
 ## Regras

@@ -3,9 +3,11 @@
   const params = new URLSearchParams(location.search);
   const fmtData = (iso) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   const rot = (st) => st === "cancelado" ? "Cancelado" : ((BK.STATUS.find((s) => s.id === st) || {}).rotulo || st);
+  // pedido de entrega em "Pronto" (etapa interna da loja) aparece pro cliente como "Em preparo"
+  const stCli = (p) => p.status === "pronto" && p.modalidade === "entrega" ? "preparo" : p.status;
   const etapas = (p) => BK.STATUS.filter((s) => !(s.soEntrega && p.modalidade !== "entrega") && !(s.soRetirada && p.modalidade !== "retirada"));
   const meusPedidos = () => { const c = Conta.atual(); const tel = (c ? c.telefone : ((JSON.parse(localStorage.getItem("bk_cliente") || "{}") || {}).telefone || "")).replace(/\D/g, ""); return tel ? BK.pedidos().filter((x) => String(x.cliente.telefone).replace(/\D/g, "") === tel).reverse() : []; };
-  const linha = (x) => '<a href="acompanhamento.html?n=' + x.numero + '"><span><strong>' + x.numero + '</strong> · ' + fmtData(x.quando) + (x.status === "concluido" && !BK.avaliacaoDoPedido(x.numero) ? ' <span class="text-xs font-bold text-secondary">★ avalie</span>' : "") + '<br/><span class="text-sm text-muted-foreground">' + x.itens.map((i) => i.qtd + "× " + esc(i.nome)).slice(0, 3).join(", ") + (x.itens.length > 3 ? "…" : "") + "</span></span><span class=\"flex items-center gap-3\"><strong>" + moeda(x.totais.total) + '</strong><span class="st ' + x.status + '">' + esc(rot(x.status)) + "</span></span></a>";
+  const linha = (x) => '<a href="acompanhamento.html?n=' + x.numero + '"><span><strong>' + x.numero + '</strong> · ' + fmtData(x.quando) + (x.status === "concluido" && !BK.avaliacaoDoPedido(x.numero) ? ' <span class="text-xs font-bold text-secondary">★ avalie</span>' : "") + '<br/><span class="text-sm text-muted-foreground">' + x.itens.map((i) => i.qtd + "× " + esc(i.nome)).slice(0, 3).join(", ") + (x.itens.length > 3 ? "…" : "") + "</span></span><span class=\"flex items-center gap-3\"><strong>" + moeda(x.totais.total) + '</strong><span class="st ' + stCli(x) + '">' + esc(rot(stCli(x))) + "</span></span></a>";
 
   function renderLista(el) {
     const meus = meusPedidos(); const andamento = meus.filter((x) => ["pago", "preparo", "saiu", "pronto"].includes(x.status)); const anteriores = meus.filter((x) => !["pago", "preparo", "saiu", "pronto"].includes(x.status));
@@ -16,7 +18,7 @@
       '<a class="' + BTN.primary + ' mt-8 h-11 px-6 rounded-full" href="index.html">' + icone("utensils-crossed") + "Ver cardápio</a>";
   }
   function renderDetalhe(el, p) {
-    const lista = etapas(p); const idx = p.status === "cancelado" ? -1 : lista.findIndex((s) => s.id === p.status); const atual = lista[idx]; const novo = params.get("novo") === "1";
+    const lista = etapas(p); const idx = p.status === "cancelado" ? -1 : lista.findIndex((s) => s.id === stCli(p)); const atual = lista[idx]; const novo = params.get("novo") === "1";
     const hist = (id) => (p.historico || []).filter((h) => h.status === id).pop();
     el.innerHTML = '<a class="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-primary" href="acompanhamento.html">' + icone("arrow-left", "h-4 w-4") + "Meus pedidos</a>" +
       (novo ? '<div class="my-5 rounded-2xl bg-[#DDF1CF] border border-[#b7e0a3] p-5 text-center"><p class="text-lg font-extrabold text-[#2F7D45]">Pagamento confirmado. Pedido recebido! 🎉</p><p class="mt-1 text-sm text-[#2F7D45]">Número <strong>' + p.numero + '</strong>. Esta página atualiza sozinha. Você também encontra o pedido em "Meus pedidos", no topo do site.</p></div>' : "") +

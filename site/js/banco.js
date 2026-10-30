@@ -6,15 +6,56 @@
   const ler = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
   const gravar = (k, v) => { localStorage.setItem(k, JSON.stringify(v)); document.dispatchEvent(new CustomEvent("banco:mudou", { detail: k })); };
   const CATEGORIAS = ["Combos", "Confeitaria", "Padaria", "Pizzas", "Salgados", "Sem Glúten e Sem Lactose", "Sopas", "Tortas Especiais"];
+  // itens da franqueadora (cupons, modelos) valem pra todas as unidades (lista vazia) ou só pras escolhidas
+  const valeAqui = (x) => !x.unidades || !x.unidades.length || x.unidades.includes(U.id || "palhoca");
   const slug = (s) => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ e sem lactose/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-  // produtos: começa com o catálogo clonado; o admin edita por cima
+  const CAMPOS_UNIDADE = ["nome", "nomeCompleto", "whatsapp", "whatsappFormatado", "endereco", "bairro", "cidade", "horario", "horarios", "razaoSocial", "cnpj", "email", "instagram", "instagramUsuario", "site", "sobre", "mapa", "textoRetirada"];
+  function dadosRedeUnidade() { const t = ler("bk_rede_unidades", null); const d = t && t[U.id || "palhoca"]; if (!d) return null; const o = {}; CAMPOS_UNIDADE.forEach((k) => { if (d[k] !== undefined) o[k] = d[k]; }); return o; }
+  const CAMPOS_PROD = ["nome", "categoria", "peso", "descricao", "preco", "destaque", "imagem", "combo"];
+  // catálogo da REDE (painel Franchising, chave bk_rede_produtos). Nasce do catalogo.js quando o Franchising abre pela 1ª vez;
+  // depois, mudanças no catalogo.js só entram nos campos que o Franchising não editou (base em bk_rede_catalogo_base).
+  function redeProdutos(criar) {
+    const js = JSON.stringify, arq = window.CATALOGO || [];
+    let l = ler("bk_rede_produtos", null);
+    if (!l) { if (!criar) return null; l = arq.map((x) => Object.assign({ ativo: true, unidades: [] }, x)); localStorage.setItem("bk_rede_produtos", js(l)); localStorage.setItem("bk_rede_catalogo_base", js(arq)); return l; }
+    const base = ler("bk_rede_catalogo_base", []);
+    if (js(base) !== js(arq)) {
+      const bm = {}; base.forEach((x) => (bm[x.id] = x)); const exc = new Set(ler("bk_rede_produtos_excluidos", []));
+      arq.forEach((x) => { const a = l.find((y) => y.id === x.id); if (!a) { if (!bm[x.id] && !exc.has(x.id)) l.push(Object.assign({ ativo: true, unidades: [] }, x)); return; } const ant = bm[x.id]; if (ant) CAMPOS_PROD.forEach((c) => { if (js(x[c]) !== js(a[c]) && js(ant[c]) === js(a[c])) a[c] = x[c]; }); });
+      if (js(base.map((x) => x.id)) !== js(arq.map((x) => x.id))) { const pos = (id) => { const i = arq.findIndex((x) => x.id === id); return i < 0 ? 1e6 : i; }; l.sort((a, b) => pos(a.id) - pos(b.id)); }
+      localStorage.setItem("bk_rede_produtos", js(l)); localStorage.setItem("bk_rede_catalogo_base", js(arq));
+    }
+    return l;
+  }
+  // produtos da unidade: com catálogo da rede, valem os produtos da rede publicados pra esta unidade (travados; a unidade só oculta/ativa,
+  // lista em bk_db_ocultos) + os produtos criados pela própria unidade. Sem catálogo da rede, vale o comportamento antigo (catalogo.js + edições locais).
   function produtos() {
+    const p = produtosLocais(); const rede = redeProdutos(false); if (!rede) return p;
+    const ocultos = new Set(ler("bk_db_ocultos", [])); const idsRede = new Set(rede.map((r) => r.id)); const idsArq = new Set((window.CATALOGO || []).map((x) => x.id));
+    const daRede = rede.filter((r) => valeAqui(r) && r.ativo !== false).map((r) => Object.assign({}, r, { ativo: !ocultos.has(r.id), rede: true }));
+    return daRede.concat(p.filter((x) => !idsRede.has(x.id) && !idsArq.has(x.id)));
+  }
+  // produtos locais: começa com o catálogo clonado; o admin edita por cima
+  function produtosLocais() {
     let p = ler(K.produtos, null);
-    if (!p) { p = (window.CATALOGO || []).map((x) => Object.assign({ ativo: true }, x)); gravar(K.produtos, p); return p; }
+    if (!p) { p = (window.CATALOGO || []).map((x) => Object.assign({ ativo: true }, x)); localStorage.setItem("bk_db_catalogo_base", JSON.stringify(window.CATALOGO || [])); gravar(K.produtos, p); return p; }
     // itens novos no catálogo do arquivo (ex.: combos) entram sozinhos, exceto os que o admin excluiu de propósito
     const exc = new Set(ler("bk_db_excluidos", [])); const ids = new Set(p.map((x) => x.id)); let mudou = false;
     (window.CATALOGO || []).forEach((x) => { if (!ids.has(x.id) && !exc.has(x.id)) { p.push(Object.assign({ ativo: true }, x)); mudou = true; } });
+    // mudanças feitas no catalogo.js (nome, descrição, ordem...) chegam no navegador, sem apagar o que foi editado no painel:
+    // um campo só é atualizado se ainda está igual à versão anterior do arquivo (bk_db_catalogo_base)
+    const CAMPOS = CAMPOS_PROD, js = JSON.stringify;
+    const base = ler("bk_db_catalogo_base", null), baseMap = {}; (base || []).forEach((x) => { baseMap[x.id] = x; });
+    const arq = window.CATALOGO || [];
+    if (js(base) !== js(arq)) {
+      arq.forEach((x) => {
+        const atual = p.find((y) => y.id === x.id), ant = baseMap[x.id]; if (!atual) return;
+        CAMPOS.forEach((c) => { if (js(x[c]) !== js(atual[c]) && (!base || (ant && js(ant[c]) === js(atual[c])))) { atual[c] = x[c]; mudou = true; } });
+      });
+      if (!base || js(base.map((x) => x.id)) !== js(arq.map((x) => x.id))) mudou = true;
+      localStorage.setItem("bk_db_catalogo_base", js(arq));
+    }
     if (mudou) { if (window.CATALOGO && window.CATALOGO.length) p.sort((a, b) => { const ia = window.CATALOGO.findIndex((x) => x.id === a.id), ib = window.CATALOGO.findIndex((x) => x.id === b.id); return (ia < 0 ? 1e6 : ia) - (ib < 0 ? 1e6 : ib); }); gravar(K.produtos, p); }
     return p;
   }
@@ -27,11 +68,11 @@
   ];
   const BK = window.BK = {
     CATEGORIAS, slug, STATUS, ler, gravar,
-    produtos, produtosAtivos: () => produtos().filter((p) => p.ativo !== false),
+    produtos, redeProdutos, produtosAtivos: () => produtos().filter((p) => p.ativo !== false),
     produto: (id) => produtos().find((p) => p.id === id),
-    salvarProduto(p) { const l = produtos(); const i = l.findIndex((x) => x.id === p.id); if (i >= 0) l[i] = p; else l.push(p); gravar(K.produtos, l); },
-    excluirProduto(id) { const e = ler("bk_db_excluidos", []); if (!e.includes(id)) e.push(id); localStorage.setItem("bk_db_excluidos", JSON.stringify(e)); gravar(K.produtos, produtos().filter((p) => p.id !== id)); },
-    restaurarCatalogo() { localStorage.removeItem(K.produtos); localStorage.removeItem("bk_db_excluidos"); produtos(); },
+    salvarProduto(p) { if (p.rede) { const o = new Set(ler("bk_db_ocultos", [])); if (p.ativo === false) o.add(p.id); else o.delete(p.id); gravar("bk_db_ocultos", [...o]); return; } const l = produtosLocais(); const i = l.findIndex((x) => x.id === p.id); if (i >= 0) l[i] = p; else l.push(p); gravar(K.produtos, l); },
+    excluirProduto(id) { const pr = this.produto(id); if (pr && pr.rede) return; const e = ler("bk_db_excluidos", []); if (!e.includes(id)) e.push(id); localStorage.setItem("bk_db_excluidos", JSON.stringify(e)); gravar(K.produtos, produtosLocais().filter((p) => p.id !== id)); },
+    restaurarCatalogo() { localStorage.removeItem(K.produtos); localStorage.removeItem("bk_db_excluidos"); localStorage.removeItem("bk_db_ocultos"); produtos(); },
     novoIdProduto(nome) { const b = slug(nome) || "produto"; let id = b, n = 1; while (produtos().some((p) => p.id === id)) id = b + "-" + (++n); return id; },
 
     pedidos: () => ler(K.pedidos, []),
@@ -83,9 +124,11 @@
     },
 
     // ---- cupons (com validade, limites e mínimo) ----
-    cupons() { let l = ler(K.cupons, null); if (!l) { l = (U.cupons || []).map((c) => Object.assign({ ativo: true, validade: "", limite: 0, umPorCliente: false, minimo: 0, descricao: "" }, c)); gravar(K.cupons, l); } else { const ids = new Set(l.map((x) => x.codigo)); let mudou = false; (U.cupons || []).forEach((c) => { if (!ids.has(c.codigo) && !ler("bk_db_cupons_excluidos", []).includes(c.codigo)) { l.push(Object.assign({ ativo: true, validade: "", limite: 0, umPorCliente: false, minimo: 0, descricao: "" }, c)); mudou = true; } }); if (mudou) gravar(K.cupons, l); } return l; },
-    salvarCupom(c) { const l = this.cupons(); const i = l.findIndex((x) => x.codigo === c.codigo); if (i >= 0) l[i] = c; else l.push(c); gravar(K.cupons, l); },
-    excluirCupom(codigo) { const e = ler("bk_db_cupons_excluidos", []); if (!e.includes(codigo)) e.push(codigo); localStorage.setItem("bk_db_cupons_excluidos", JSON.stringify(e)); gravar(K.cupons, this.cupons().filter((c) => c.codigo !== codigo)); },
+    cuponsLocais() { let l = ler(K.cupons, null); if (!l) { l = (U.cupons || []).map((c) => Object.assign({ ativo: true, validade: "", limite: 0, umPorCliente: false, minimo: 0, descricao: "" }, c)); gravar(K.cupons, l); } else { const ids = new Set(l.map((x) => x.codigo)); let mudou = false; (U.cupons || []).forEach((c) => { if (!ids.has(c.codigo) && !ler("bk_db_cupons_excluidos", []).includes(c.codigo)) { l.push(Object.assign({ ativo: true, validade: "", limite: 0, umPorCliente: false, minimo: 0, descricao: "" }, c)); mudou = true; } }); if (mudou) gravar(K.cupons, l); } return l; },
+    // cupons = os da unidade + os que a franqueadora publicou pra esta unidade (somente leitura, marcados com rede: true)
+    cupons() { const l = this.cuponsLocais(); const rede = ler("bk_rede_cupons", []).filter((c) => valeAqui(c) && !l.some((x) => x.codigo === c.codigo)).map((c) => Object.assign({}, c, { rede: true })); return l.concat(rede); },
+    salvarCupom(c) { const l = this.cuponsLocais(); const i = l.findIndex((x) => x.codigo === c.codigo); if (i >= 0) l[i] = c; else l.push(c); gravar(K.cupons, l); },
+    excluirCupom(codigo) { const e = ler("bk_db_cupons_excluidos", []); if (!e.includes(codigo)) e.push(codigo); localStorage.setItem("bk_db_cupons_excluidos", JSON.stringify(e)); gravar(K.cupons, this.cuponsLocais().filter((c) => c.codigo !== codigo)); },
     usosCupom(codigo, tel) { return ler(K.pedidos, []).filter((p) => p.status !== "cancelado" && p.cupom && p.cupom.codigo === codigo && (!tel || String(p.cliente.telefone).replace(/\D/g, "") === String(tel).replace(/\D/g, ""))).length; },
     validarCupom(codigo, subtotal, tel) {
       codigo = String(codigo || "").trim().toUpperCase(); const c = this.cupons().find((x) => x.codigo === codigo);
@@ -119,9 +162,11 @@
       { id: "m-dia-das-maes", nome: "Dia das Mães", categoria: "Datas", origem: "franqueadora", texto: "Oi, {nome}! Café da manhã especial pro Dia das Mães? Combos prontos na {loja}, é só assar. Peça no site: {site}" },
       { id: "m-fim-de-semana", nome: "Lembrete de fim de semana", categoria: "Recorrência", origem: "unidade", texto: "Oi, {nome}! Sexta chegou. Já garantiu o pão de queijo do fim de semana? Peça até as 18h e receba hoje: {site}" }
     ],
-    modelos() { let l = ler(K.modelos, null); if (!l) { l = this.MODELOS_PADRAO.slice(); gravar(K.modelos, l); } return l; },
-    salvarModelo(m) { const l = this.modelos(); const i = l.findIndex((x) => x.id === m.id); if (i >= 0) l[i] = m; else l.push(m); gravar(K.modelos, l); },
-    excluirModelo(id) { gravar(K.modelos, this.modelos().filter((m) => m.id !== id)); },
+    // modelos = os publicados pela franqueadora pra esta unidade (somente leitura) + os criados pela unidade
+    modelosLocais() { let l = ler(K.modelos, null); if (!l) { l = this.MODELOS_PADRAO.filter((m) => m.origem !== "franqueadora"); gravar(K.modelos, l); } return l.filter((m) => m.origem !== "franqueadora"); },
+    modelos() { const rede = ler("bk_rede_modelos", null); const daRede = (rede || this.MODELOS_PADRAO.filter((m) => m.origem === "franqueadora")).filter(valeAqui).map((m) => Object.assign({}, m, { origem: "franqueadora", rede: true })); return daRede.concat(this.modelosLocais()); },
+    salvarModelo(m) { const l = this.modelosLocais(); const i = l.findIndex((x) => x.id === m.id); if (i >= 0) l[i] = m; else l.push(m); gravar(K.modelos, l); },
+    excluirModelo(id) { gravar(K.modelos, this.modelosLocais().filter((m) => m.id !== id)); },
 
     // ---- campanhas (disparos pra públicos) ----
     campanhas: () => ler(K.campanhas, []),
@@ -133,10 +178,27 @@
     salvarAvaliacao(a) { const l = ler(K.avaliacoes, []).filter((x) => x.numero !== a.numero); l.push(a); gravar(K.avaliacoes, l); },
     mediaAvaliacoes() { const l = ler(K.avaliacoes, []); return l.length ? { media: l.reduce((s, a) => s + a.nota, 0) / l.length, n: l.length } : null; },
 
-    config() { return Object.assign({}, U, ler(K.config, {})); },
+    // dados fixos da unidade (nome, endereço, contato, horários...) vêm do painel Franchising (bk_rede_unidades) e passam por cima dos ajustes locais
+    CAMPOS_UNIDADE,
+    dadosRede: () => dadosRedeUnidade(),
+    config() { return Object.assign({}, U, ler(K.config, {}), dadosRedeUnidade() || {}); },
     salvarConfig(c) { gravar(K.config, c); },
+    // mensagens automáticas de status: definidas pelo Franchising pra rede toda (bk_rede_msgs_auto). Sem isso, vale o que a unidade tinha.
+    MSGS_AUTO_PADRAO: {
+      pago: "Oi, {nome}! Recebemos seu pedido {numero} na {loja}. Já estamos preparando tudo. 🥖",
+      pronto: "Oi, {nome}! Seu pedido {numero} está pronto pra retirada na {loja}: {endereco}.",
+      saiu: "Oi, {nome}! Seu pedido {numero} saiu pra entrega e chega em breve. 🚚 {loja}",
+      concluido: "Pedido {numero} entregue! Obrigado por pedir na {loja}, {nome}. Até a próxima! 🙌",
+      cancelado: "Oi, {nome}! Infelizmente a {loja} não conseguiu aceitar o pedido {numero} ({motivo}). O valor pago será estornado."
+    },
+    mensagensAuto() {
+      const r = ler("bk_rede_msgs_auto", null);
+      if (r) return { envio: Object.assign({ pago: true, pronto: true, saiu: true, concluido: false, cancelado: true }, r.envio), textos: Object.assign({}, this.MSGS_AUTO_PADRAO, r.textos), rede: true };
+      const c = ler(K.config, {}); const on = c.mensagensAuto !== false;
+      return { envio: { pago: on, pronto: on, saiu: on, concluido: !!c.mensagemConcluido, cancelado: true }, textos: Object.assign({}, this.MSGS_AUTO_PADRAO, c.modelosMensagem || {}) };
+    },
     limparTudo() { Object.values(K).forEach((k) => localStorage.removeItem(k)); }
   };
-  // UNIDADE efetivo = dados do arquivo + ajustes do admin
-  Object.assign(U, ler(K.config, {}));
+  // UNIDADE efetivo = dados do arquivo + ajustes da unidade (taxas, texto de entrega) + dados fixos definidos pelo Franchising
+  Object.assign(U, ler(K.config, {}), dadosRedeUnidade() || {});
 })();

@@ -5,7 +5,7 @@ window.CATALOGO = [
   "categoria": "Combos",
   "nome": "Combo Café da Manhã",
   "peso": "2 itens",
-  "descricao": "Pão de queijo tradicional + croissant. Monte a mesa de domingo em minutos.",
+  "descricao": "Pão de queijo tradicional + croissant: do freezer direto para o forno, o café da manhã resolvido em 5 minutos.",
   "preco": 51.98,
   "destaque": true,
   "imagem": "imagens/produtos/1768858709742-0bfkrp38q82e.webp",
@@ -25,7 +25,7 @@ window.CATALOGO = [
   "categoria": "Combos",
   "nome": "Combo Noite da Pizza",
   "peso": "2 pizzas",
-  "descricao": "Duas pizzas artesanais à sua escolha pra assar em casa.",
+  "descricao": "Pizza italiana com massa de fermentação natural: Calabresa e Margherita, do freezer direto para o forno. A noite de pizza pronta em minutos.",
   "preco": 69.98,
   "destaque": false,
   "imagem": "imagens/produtos/1768921946702-puz3sn5ulhd.jpg",
@@ -45,7 +45,7 @@ window.CATALOGO = [
   "categoria": "Combos",
   "nome": "Combo Festa",
   "peso": "bolo + docinhos",
-  "descricao": "Bolo 4 leites 800g + 12 brigadeiros. Resolve o aniversário.",
+  "descricao": "Bolo de 4 Leites + 12 brigadeiros tradicionais. A festa pronta, é só acender a vela! Deixe descansar de 2 a 3 horas em temperatura ambiente.",
   "preco": 76.89,
   "destaque": false,
   "imagem": "imagens/produtos/1790882400245-ghwba1ypc2.jpg",
@@ -59,16 +59,6 @@ window.CATALOGO = [
     "qtd": 1
    }
   ]
- },
- {
-  "id": "beijinho-c-12-und",
-  "categoria": "Confeitaria",
-  "nome": "Beijinho - C /12 Und",
-  "peso": "210g",
-  "descricao": "Clássico e irresistivel! Beijinho cremoso com coco ralado r cobertura de açúcar na medida Certa",
-  "preco": 19.99,
-  "destaque": false,
-  "imagem": "imagens/produtos/1768753005328-jqnxbxu96k.jpg"
  },
  {
   "id": "bolo-2-amores",
@@ -131,6 +121,26 @@ window.CATALOGO = [
   "imagem": "imagens/produtos/1790882688896-vgxrzgoy3ul.jpg"
  },
  {
+  "id": "bolo-de-prestgio",
+  "categoria": "Confeitaria",
+  "nome": "Bolo de prestígio",
+  "peso": "800g",
+  "descricao": "",
+  "preco": 59.9,
+  "destaque": true,
+  "imagem": "imagens/produtos/1790882877032-sqt8yjy0n7h.jpg"
+ },
+ {
+  "id": "bolo-marta-rocha",
+  "categoria": "Confeitaria",
+  "nome": "Bolo Marta Rocha",
+  "peso": "800g",
+  "descricao": "",
+  "preco": 59.9,
+  "destaque": true,
+  "imagem": "imagens/produtos/1790882760241-02tm7xxsn5kw.jpg"
+ },
+ {
   "id": "bolo-de-pote-2-amores",
   "categoria": "Confeitaria",
   "nome": "Bolo de pote 2 amores",
@@ -191,24 +201,14 @@ window.CATALOGO = [
   "imagem": "imagens/produtos/1768752598790-d1p0gb9ncz7.webp"
  },
  {
-  "id": "bolo-de-prestgio",
+  "id": "beijinho-c-12-und",
   "categoria": "Confeitaria",
-  "nome": "Bolo de prestígio",
-  "peso": "800g",
-  "descricao": "",
-  "preco": 59.9,
-  "destaque": true,
-  "imagem": "imagens/produtos/1790882877032-sqt8yjy0n7h.jpg"
- },
- {
-  "id": "bolo-marta-rocha",
-  "categoria": "Confeitaria",
-  "nome": "Bolo Marta Rocha",
-  "peso": "800g",
-  "descricao": "",
-  "preco": 59.9,
-  "destaque": true,
-  "imagem": "imagens/produtos/1790882760241-02tm7xxsn5kw.jpg"
+  "nome": "Beijinho - C /12 Und",
+  "peso": "210g",
+  "descricao": "Clássico e irresistível! Beijinho cremoso com coco ralado e cobertura de açúcar na medida.",
+  "preco": 19.99,
+  "destaque": false,
+  "imagem": "imagens/produtos/1768753005328-jqnxbxu96k.jpg"
  },
  {
   "id": "brigadeiro-c-12-und",
@@ -1293,7 +1293,7 @@ window.CATALOGO = [
  {
   "id": "torta-fina-de-oreo-8-fatias",
   "categoria": "Tortas Especiais",
-  "nome": "Torta Fina de Oreo 8 Fatias",
+  "nome": "Torta Royale ChocoBiscuit",
   "peso": "680g",
   "descricao": "Camadas irresistíveis de mouse de chocolate ao leite com pedaços de Oreo, base de cream cheese com chocolate branco e biscoito oreo, cobertura de ganache ao Leite e decoração com chantilly de chocolate e oreo mini.",
   "preco": 89.9,
@@ -1303,9 +1303,9 @@ window.CATALOGO = [
  {
   "id": "torta-fina-doce-de-leite-8-fatias",
   "categoria": "Tortas Especiais",
-  "nome": "Torta Fina Doce de Leite 8 fatias",
+  "nome": "Torta Royale Lechedor",
   "peso": "680g",
-  "descricao": "Recheio Cítrico e equilibrado Com Cobrtura suave e base crocante.",
+  "descricao": "Camadas cremosas de doce de leite sobre base crocante de biscoito, com cobertura de Doce de Leite. Doce na medida, do jeitinho que dá vontade de repetir.",
   "preco": 89.9,
   "destaque": false,
   "imagem": "imagens/produtos/1768763233181-59znwtdykiy.jpg"
@@ -1313,7 +1313,7 @@ window.CATALOGO = [
  {
   "id": "torta-fina-ferrero-roche-8-fatias",
   "categoria": "Tortas Especiais",
-  "nome": "Torta fina Ferrero Roche 8 Fatias",
+  "nome": "Torta Royale Chocod'Or",
   "peso": "680g",
   "descricao": "Delicada base de biscoitos, mouse de chocolate Preto com creme de Pedaços de ferreiro Roche  e coco, cobertura de ganache de chocolate.",
   "preco": 89.9,

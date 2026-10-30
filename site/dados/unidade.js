@@ -1,5 +1,6 @@
 // Dados da unidade. Pra criar o site de outra franquia, trocar este arquivo (e o catálogo, se mudar).
 window.UNIDADE = {
+  id: "palhoca",                         // identificador da unidade na rede (painel da franqueadora)
   nome: "Palhoça",
   nomeCompleto: "Bread King Palhoça",
   whatsapp: "5548988475389",            // só números, com DDI. Número de TESTE (decisão de 13/10/2026)

@@ -17,6 +17,7 @@ clientes, configurações) fica no `localStorage` do navegador: é a simulação
 | `conta.html` | **Minha conta.** Dados do cliente, progresso do cadastro e voucher CADASTRO5 (5% OFF) liberado ao completar 100%. |
 | `sobre.html` | A antiga home clonada, em standby. **Não é linkada em lugar nenhum**; abre só pelo arquivo. |
 | `admin/index-v2.html` | Painel com o **mesmo visual do site** (branco, Figtree, vermelho só como acento). Mesmas funções do painel v1. |
+| `franqueadora/index.html` | **Painel da franqueadora.** Senha `franqueadora`. Performance geral da rede, CRM (dashboard e clientes com segmentação), cupons e modelos de mensagem da rede. Filtros com todas, uma ou várias unidades. |
 | `admin/index.html` | **Painel da unidade.** Sem link no site. Senha padrão `breadking` (troque em Configurações). |
 
 ## Conta do cliente e pedido sem login
@@ -29,7 +30,7 @@ clientes, configurações) fica no `localStorage` do navegador: é a simulação
 
 ## Painel (`admin/`)
 
-- **Pedidos:** KPIs do dia, filtros, detalhe, avanço de status (Pago → Em preparo → Saiu pra entrega / Pronto pra retirada → Concluído), cancelar, exportar CSV. Ao marcar "Saiu pra entrega" ou "Pronto pra retirada" a mensagem automática é enviada sozinha: na simulação ela fica registrada no pedido e aparece pro cliente na página do pedido; em produção sai pela API de WhatsApp.
+- **Pedidos:** busca e filtros no topo; pedidos novos (pagos, aguardando aceite) em destaque com bipe e contador na aba; o franqueado abre o pedido e clica em **Aceitar** ou **Recusar** (com motivo). Quadro: Em preparo | Pronto, Em rota e Finalizados | pedido aberto. Fluxo: Novo → Em preparo → Pronto → Em rota (só entrega) → Finalizados; os cards podem ser arrastados entre as colunas. Abaixo, a tabela de todos os pedidos e exportar CSV. Mensagens automáticas ao aceitar, recusar, sair pra entrega e pronto pra retirada (simulação: ficam registradas no pedido). Na página "Meus pedidos", um pedido de entrega em "Pronto" aparece pro cliente como "Em preparo".
 - **Desempenho:** faturamento, ticket médio e nº de pedidos por mês (últimos 3/6/12 meses ou período livre), com tooltip e versão em tabela.
 - **Curva ABC:** produtos ou clientes por receita, classes A/B/C, filtro de período, CSV.
 - **Cupons:** aba própria. Código, desconto, descrição, vale de/até, limite total de usos, uma vez por cliente, pedido mínimo, ativo. O site valida tudo na hora e mostra o motivo da recusa.
@@ -39,7 +40,26 @@ clientes, configurações) fica no `localStorage` do navegador: é a simulação
 - **Clientes:** busca por nome, e-mail ou telefone; cadastro automático pelos pedidos: nº de pedidos, total, ticket, último pedido, bairro, preferência, produtos mais comprados. Exportar CSV.
 - **Produtos:** adicionar, editar (nome, categoria, peso, descrição, preço, foto, destaque). Categoria **Combos**: o cadastro pede a composição (produtos e quantidades) e mostra a soma dos itens avulsos como referência; no site o card mostra "Leva: …". Três combos de exemplo já vêm no catálogo, ocultar/ativar, excluir, restaurar o catálogo clonado. As mudanças aparecem no site na hora.
 - **Segmentações:** 20 filtros combináveis (inclui gênero, faixa etária, situação do cadastro) (inclui aniversário no mês e aniversário em até N dias, a partir do campo opcional de nascimento no pedido) (último pedido entre datas, inativos há X dias, nº de pedidos, comprou o produto X, comprou/nunca comprou a categoria, ticket, total gasto, top % em gasto, bairro, só entrega/retirada, cupom) + 7 públicos prontos + públicos salvos. Mensagem com `{nome}`, exportar CSV e botão "Enviar" por cliente (abre o WhatsApp).
-- **Configurações:** dados da loja, taxas por bairro, cupons, modelos das mensagens automáticas, senha. Botões de simulação: gerar 15 pedidos de exemplo, apagar pedidos, zerar tudo.
+- **Configurações:** dados da unidade só pra consulta (definidos pelo Franchising, aba Unidades); taxa de entrega por bairro em linhas (bairro + valor, adicionar/remover); texto da entrega; senha do painel. Botões de simulação. As mensagens automáticas de status saíram daqui e são definidas pelo Franchising.
+- **Produtos:** a unidade não cria produtos (o catálogo vem do Franchising); só oculta/ativa.
+- **Segmentações:** além dos públicos prontos, lista os públicos salvos com Editar (nome e filtros) e Excluir.
+
+## Painel da franqueadora (`franqueadora/`)
+
+- **Unidades:** Palhoça, Maringá e Joinville. As três têm 12 meses de pedidos **fictícios** (gerados em `franqueadora/rede-dados.js`, sempre iguais e relativos à data de hoje); a Palhoça soma também os pedidos reais feitos no site neste navegador.
+- **Performance geral:** faturamento, pedidos, ticket, clientes ativos (novos x recorrentes), taxa de recompra, avaliação e desconto em cupons, com variação vs. período anterior; faturamento no tempo, ranking de unidades, vendas por categoria, top 10 produtos, entrega x retirada, Pix x cartão, horários, dias da semana, cupons e cancelamentos.
+- **Curva ABC:** produtos, categorias ou clientes por receita (classes A/B/C), com filtro de unidades e período, e exportar CSV.
+- **Catálogo › Produtos:** o catálogo da rede (chave `bk_rede_produtos`, nasce do `catalogo.js` na 1ª abertura). O Franchising cria, edita (nome, foto, descrição, categoria, preço, destaque, combo), desativa, exclui e escolhe as unidades de cada produto, e vê vendas e faturamento por produto e unidade. No painel da unidade esses produtos aparecem com a etiqueta "Franchising" e travados: a unidade só oculta/ativa no site dela. Produtos criados pela própria unidade continuam editáveis por ela.
+- **CRM › Dashboard:** ranking por categoria, gênero, faixa etária, período de venda (horário, dia da semana, semana do mês) e formas de pagamento.
+- **Performance geral (fim da página):** gráficos de ticket médio e de número de pedidos ao longo do tempo, por unidade ou da rede.
+- **CRM › Clientes:** lista por período e unidade, busca, ficha do cliente, exportar CSV.
+- **CRM › Segmentação:** mesma tela da unidade, com a escolha de unidades (todas, uma ou várias) dentro dos filtros: públicos salvos (Editar/Excluir, chave `bk_rede_publicos`), públicos prontos, filtros, contagem, lista e CSV, com filtro de unidades e período.
+- **Cupons:** todos os cupons, da rede e os criados pelas unidades; o Franchising edita, desativa e exclui qualquer um (Palhoça = cupons reais do navegador; Maringá/Joinville = exemplos em `bk_rede_cupons_unidades`). Filtro por origem e unidade.
+- **Marketing › Campanhas:** performance dos disparos de WhatsApp das unidades. Conversão = cliente acionado que comprou na unidade em até 7 dias. Compara com quem não recebeu mensagem (clientes que já compraram na unidade e não tiveram disparo nos 7 dias antes/depois). Funil, dia da compra, ranking de unidades, por modelo, por público e lista de campanhas com quem comprou. Regra da rede: 1 disparo por cliente a cada 7 dias (o painel da unidade tira da campanha quem recebeu nos últimos 7 dias). Maringá/Joinville e a Palhoça têm campanhas de exemplo; a Palhoça soma as reais.
+- **CRM › Avaliações:** só análise. Nota média, taxa de avaliação, % notas 4–5 e 1–2, alertas, ranking, distribuição das notas, evolução, entrega × retirada, horário, dia da semana, produtos com pior nota e comentários com busca e palavras frequentes.
+- **Rede › Unidades:** cadastro de cada unidade (nome, razão social, CNPJ, WhatsApp, e-mail, Instagram, site, endereço, horários por dia, sobre). Chave `bk_rede_unidades`; o site e o painel da unidade passam a usar esses dados e a unidade não edita.
+- **Rede › Mensagens automáticas:** textos e liga/desliga das mensagens de status (aceito, pronto pra retirada, saiu pra entrega, concluído, recusado) para todas as unidades. Chave `bk_rede_msgs_auto`; sem ela, vale o que a unidade tinha.
+- **Cupons e Modelos:** criados aqui valem pra todas as unidades ou só as escolhidas (chaves `bk_rede_cupons` e `bk_rede_modelos`). No painel da unidade aparecem com a etiqueta "Franqueadora", somente leitura; os cupons valem no site na hora.
 
 ## Identidade
 

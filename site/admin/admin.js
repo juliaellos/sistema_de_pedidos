@@ -9,13 +9,14 @@
   const tel = (t) => String(t || "").replace(/\D/g, "");
   const wa = (t, msg) => "https://wa.me/" + (tel(t).startsWith("55") ? tel(t) : "55" + tel(t)) + "?text=" + encodeURIComponent(msg);
   const toast = (m) => { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); };
-  const MODELOS = { pago: "Oi, {nome}! Recebemos seu pedido {numero} na {loja}. Já estamos preparando tudo. 🥖", preparo: "Oi, {nome}! Seu pedido {numero} está em preparo. Em breve te aviso quando sair.", saiu: "Oi, {nome}! Seu pedido {numero} saiu pra entrega e chega em breve. 🚚 {loja}", pronto: "Oi, {nome}! Seu pedido {numero} está pronto pra retirada na {loja}: {endereco}.", concluido: "Pedido {numero} entregue! Obrigado por pedir na {loja}, {nome}. Até a próxima! 🙌" };
-  const modelos = () => Object.assign({}, MODELOS, cfg().modelosMensagem || {});
-  const preencher = (m, p) => m.replace(/\{nome\}/g, (p.cliente.nome || "").split(" ")[0]).replace(/\{numero\}/g, p.numero).replace(/\{loja\}/g, cfg().nomeCompleto).replace(/\{endereco\}/g, cfg().endereco).replace(/\{total\}/g, moeda(p.totais.total));
+  // textos e liga/desliga das mensagens automáticas vêm do painel Franchising (aba Mensagens automáticas)
+  const modelos = () => BK.mensagensAuto().textos;
+  const preencher = (m, p) => m.replace(/\{nome\}/g, (p.cliente.nome || "").split(" ")[0]).replace(/\{numero\}/g, p.numero).replace(/\{loja\}/g, cfg().nomeCompleto).replace(/\{endereco\}/g, cfg().endereco).replace(/\{total\}/g, moeda(p.totais.total)).replace(/\{motivo\}/g, (p.recusa && p.recusa.motivo || "").toLowerCase());
 
   // ---------- sessão ----------
   const senhaOk = (s) => s === (cfg().admin && cfg().admin.senha || "breadking");
   function iniciar() {
+    document.title = cfg().nomeCompleto; // nome da aba = nome da unidade (ex.: "Bread King Palhoça")
     document.getElementById("login-unidade").textContent = cfg().nomeCompleto; document.getElementById("lateral-unidade").textContent = cfg().nome;
     if (sessionStorage.getItem("bk_admin") === "1") { mostrarApp(); } else document.getElementById("login").classList.remove("hidden");
     document.getElementById("form-login").addEventListener("submit", (e) => { e.preventDefault(); if (senhaOk(document.getElementById("senha").value)) { sessionStorage.setItem("bk_admin", "1"); document.getElementById("login").classList.add("hidden"); mostrarApp(); } else document.getElementById("login-erro").textContent = "Senha incorreta."; });
@@ -42,31 +43,172 @@
   function fecharGaveta() { document.querySelectorAll(".fundo").forEach((f) => f.remove()); }
   const pill = (st) => { const s = BK.STATUS.find((x) => x.id === st); return '<span class="pill ' + st + '">' + (s ? s.rotulo : st === "cancelado" ? "Cancelado" : st) + "</span>"; };
 
-  // ---------- PEDIDOS ----------
+  // ---------- PEDIDOS (v3: quadro de acompanhamento estilo gestor de delivery) ----------
+  // Fluxo: Novo (pago, aguardando aceite) → Em preparo → Pronto → Em rota (só entrega) → Finalizados. Recusar → Cancelado com motivo.
   const filtroPed = { status: "", busca: "", de: "", ate: "" };
+  let selPed = null, recusando = null, vistos = null, histAberto = false;
+  const recolhido = { pronto: false, saiu: false, concluido: false };
+  const ehNovo = (p) => p.status === "pago";
+  const nomeCurto = (n) => { const x = String(n || "").trim().split(/\s+/); return x[0] + (x.length > 1 ? " " + x[x.length - 1][0] + "." : ""); };
+  const minutos = (iso) => Math.max(0, Math.round((Date.now() - new Date(iso)) / 6e4));
+  const haTempo = (iso) => { const m = minutos(iso); return m < 1 ? "agora" : m < 60 ? "há " + m + " min" : m < 1440 ? "há " + Math.floor(m / 60) + " h" : fmtD(iso); };
+  const hora = (d) => new Date(d).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const previsao = (p) => new Date(new Date(p.quando).getTime() + (p.modalidade === "entrega" ? 45 : 20) * 6e4);
+  const desdeStatus = (p) => { const h = (p.historico || []).filter((x) => x.status === p.status).pop(); return h ? h.quando : p.quando; };
+  const MOTIVOS = ["Produto em falta", "Endereço fora da área de entrega", "Loja fechando / sem equipe", "Pedido duplicado", "Outro motivo"];
+  function bipe() { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); [0, 0.2].forEach((t) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 880; o.connect(g); g.connect(ctx.destination); g.gain.setValueAtTime(0.15, ctx.currentTime + t); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.15); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.16); }); } catch (e) {} }
+  setInterval(() => { const a = document.activeElement; if (telaAtual === "pedidos" && !document.querySelector(".fundo") && !(a && /INPUT|SELECT|TEXTAREA/.test(a.tagName))) render(); }, 30000);
+
   function telaPedidos(el) {
     const todos = BK.pedidos().slice().reverse();
-    const hoje = new Date().toDateString();
-    const deHoje = todos.filter((p) => new Date(p.quando).toDateString() === hoje && p.status !== "cancelado");
-    const abertos = todos.filter((p) => ["pago", "preparo", "saiu", "pronto"].includes(p.status));
-    const lista = todos.filter((p) => (!filtroPed.status || p.status === filtroPed.status) && (!filtroPed.busca || (p.numero + " " + p.cliente.nome + " " + p.cliente.telefone).toLowerCase().includes(filtroPed.busca.toLowerCase())) && (!filtroPed.de || p.quando >= filtroPed.de) && (!filtroPed.ate || p.quando <= filtroPed.ate + "T23:59:59"));
-    el.innerHTML = topo("Operação", "Pedidos", "Mude o status conforme o pedido avança. O cliente acompanha em tempo real.", '<button class="btn" data-exportar-pedidos>' + icone("package") + "Exportar CSV</button>") +
-      '<div class="kpis"><div class="cartao kpi"><div class="rotulo">Em aberto</div><div class="valor">' + abertos.length + '</div><div class="sub">aguardando preparo ou entrega</div></div><div class="cartao kpi"><div class="rotulo">Pedidos hoje</div><div class="valor">' + deHoje.length + '</div><div class="sub">' + moeda(deHoje.reduce((s, p) => s + p.totais.total, 0)) + ' faturados</div></div><div class="cartao kpi"><div class="rotulo">Ticket médio hoje</div><div class="valor">' + moeda(deHoje.length ? deHoje.reduce((s, p) => s + p.totais.total, 0) / deHoje.length : 0) + '</div></div><div class="cartao kpi"><div class="rotulo">Total de pedidos</div><div class="valor">' + todos.length + '</div><div class="sub">' + BK.clientes().length + " clientes</div></div></div>" +
-      '<div class="cartao"><div class="linha" style="margin-bottom:1rem"><label class="campo">Buscar<input data-f="busca" value="' + esc(filtroPed.busca) + '" placeholder="nº, nome ou telefone"/></label><label class="campo">Status<select data-f="status"><option value="">Todos</option>' + BK.STATUS.map((s) => '<option value="' + s.id + '"' + (filtroPed.status === s.id ? " selected" : "") + ">" + s.rotulo + "</option>").join("") + '<option value="cancelado"' + (filtroPed.status === "cancelado" ? " selected" : "") + '>Cancelado</option></select></label><label class="campo">De<input type="date" data-f="de" value="' + filtroPed.de + '"/></label><label class="campo">Até<input type="date" data-f="ate" value="' + filtroPed.ate + '"/></label></div>' +
-      (lista.length ? '<div style="overflow:auto"><table><thead><tr><th>Pedido</th><th>Quando</th><th>Cliente</th><th>Itens</th><th>Modalidade</th><th>Total</th><th>Status</th></tr></thead><tbody>' + lista.map((p) => '<tr class="clicavel" data-pedido="' + p.numero + '"><td><b>' + p.numero + "</b></td><td>" + fmt(p.quando) + "</td><td>" + esc(p.cliente.nome) + '<div class="mini">' + esc(p.cliente.telefone) + "</div></td><td>" + p.itens.reduce((s, i) => s + i.qtd, 0) + "</td><td>" + (p.modalidade === "entrega" ? "Entrega · " + esc(p.bairro) : "Retirada") + "</td><td><b>" + moeda(p.totais.total) + "</b></td><td>" + pill(p.status) + "</td></tr>").join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum pedido ' + (todos.length ? "com esse filtro." : "ainda. Faça um pedido de teste no site ou gere exemplos em Configurações.") + "</div>") + "</div>";
+    // período: hoje por padrão; com De/Até filtrado, usa o período (vale pros Finalizados)
+    const hoje = new Date().toDateString(); const comPeriodo = !!(filtroPed.de || filtroPed.ate);
+    const dataBR = (s) => s.split("-").reverse().join("/");
+    const rotPer = !comPeriodo ? "hoje" : filtroPed.de && filtroPed.ate ? (filtroPed.de === filtroPed.ate ? "em " + dataBR(filtroPed.de) : "de " + dataBR(filtroPed.de) + " a " + dataBR(filtroPed.ate)) : filtroPed.de ? "desde " + dataBR(filtroPed.de) : "até " + dataBR(filtroPed.ate);
+    const noPeriodo = (p) => comPeriodo ? (!filtroPed.de || p.quando >= filtroPed.de) && (!filtroPed.ate || p.quando <= filtroPed.ate + "T23:59:59") : new Date(p.quando).toDateString() === hoje;
+    const q = filtroPed.busca.trim().toLowerCase();
+    const bate = (p) => !q || (p.numero + " " + p.cliente.nome + " " + p.cliente.telefone).toLowerCase().includes(q);
+    const lista = todos.filter((p) => (!filtroPed.status || p.status === filtroPed.status) && bate(p) && (!filtroPed.de || p.quando >= filtroPed.de) && (!filtroPed.ate || p.quando <= filtroPed.ate + "T23:59:59"));
+    const cli = {}; BK.clientes().forEach((c) => (cli[c.telefone] = c));
+    const novos = todos.filter((p) => ehNovo(p) && bate(p));
+    const col = (st) => todos.filter((p) => p.status === st && bate(p)).sort((a, b) => a.quando.localeCompare(b.quando));
+    const preparo = col("preparo"), pronto = col("pronto"), saiu = col("saiu");
+    const finalizados = todos.filter((p) => p.status === "concluido" && bate(p) && noPeriodo(p));
+    // aviso de pedido novo: bipe + aviso na tela + contador no nome da aba
+    const idsNovos = todos.filter(ehNovo).map((p) => p.numero);
+    if (vistos === null) vistos = new Set(idsNovos);
+    else { const chegou = idsNovos.filter((n) => !vistos.has(n)); if (chegou.length) { bipe(); toast("🔔 Novo pedido: " + chegou.join(", ")); chegou.forEach((n) => vistos.add(n)); } }
+    document.title = (idsNovos.length ? "(" + idsNovos.length + ") " : "") + cfg().nomeCompleto;
+    if (selPed && !BK.pedido(selPed)) selPed = null;
+
+    const card = (p) => {
+      const c = cli[tel(p.cliente.telefone)]; const vip = c && c.n >= 5; const prev = previsao(p); const atrasado = ["preparo", "pronto", "saiu"].includes(p.status) && prev < new Date();
+      const rod = p.status === "preparo" ? (atrasado ? '<span class="atraso">Atrasado · previsto ' + hora(prev) + "</span>" : (p.modalidade === "entrega" ? "Entregar até " : "Retirada até ") + hora(prev))
+        : p.status === "pronto" ? (p.modalidade === "entrega" ? "Pronto pra sair · " : "Aguardando retirada · ") + haTempo(desdeStatus(p)) : p.status === "saiu" ? "Em rota " + haTempo(desdeStatus(p)) : p.status === "concluido" ? "✓ Concluído" : "";
+      return '<button type="button" draggable="true" class="pcard' + (p.numero === selPed ? " sel" : "") + '" data-sel="' + esc(p.numero) + '" data-arrastar="' + esc(p.numero) + '"><span class="pcard-top"><span>' + (p.modalidade === "entrega" ? icone("truck") + "Entrega" : icone("store") + "Retirada") + "</span><span>" + haTempo(p.quando) + '</span></span><span class="pcard-num">' + esc(p.numero) + '</span><span class="pcard-nome">' + (vip ? '<span class="estrela" title="Super cliente">★</span>' : "") + esc(nomeCurto(p.cliente.nome)) + '</span><span class="pcard-rod' + (p.status === "concluido" ? " ok" : "") + '">' + rod + "</span></button>";
+    };
+    const grupo = (id, rot, ps, vazio) => '<div class="grupo-ped" data-drop="' + id + '"><button type="button" class="grupo-cab" data-recolher="' + id + '"><span>' + rot + ' <span class="badge">' + ps.length + "</span></span>" + icone("chevron-down") + '</button><div class="grupo-corpo' + (recolhido[id] ? " hidden" : "") + '">' + (ps.length ? ps.map(card).join("") : '<div class="col-vazia">' + vazio + "</div>") + "</div></div>";
+
+    el.innerHTML = topo("Operação", "Pedidos", "", '<button class="btn" data-simular>' + icone("plus") + 'Simular pedido novo</button><button class="btn" data-exportar-pedidos>' + icone("package") + "Exportar CSV</button>") +
+      '<div class="cartao barra-ped"><label class="campo busca-ped">Buscar<span class="com-icone">' + icone("search") + '<input data-f="busca" value="' + esc(filtroPed.busca) + '" placeholder="nº do pedido, nome ou telefone"/></span></label><label class="campo">Status<select data-f="status"><option value="">Todos</option>' + BK.STATUS.map((s) => '<option value="' + s.id + '"' + (filtroPed.status === s.id ? " selected" : "") + ">" + s.rotulo + "</option>").join("") + '<option value="cancelado"' + (filtroPed.status === "cancelado" ? " selected" : "") + '>Cancelado</option></select></label><label class="campo">De<input type="date" data-f="de" value="' + filtroPed.de + '"/></label><label class="campo">Até<input type="date" data-f="ate" value="' + filtroPed.ate + '"/></label></div>' +
+      (novos.length ? '<div class="novos"><div class="novos-cab">' + icone("sparkles") + "<b>" + novos.length + (novos.length === 1 ? " pedido novo aguardando aceite" : " pedidos novos aguardando aceite") + '</b><span class="mini">Clique no pedido, confira e aceite ou recuse.</span></div><div class="novos-lista">' +
+        novos.map((p) => '<button type="button" draggable="true" class="novo-card' + (p.numero === selPed ? " sel" : "") + '" data-sel="' + esc(p.numero) + '" data-arrastar="' + esc(p.numero) + '"><span class="novo-num">' + esc(p.numero) + '</span><span class="novo-nome">' + esc(nomeCurto(p.cliente.nome)) + '</span><span class="mini">' + p.itens.reduce((s, i) => s + i.qtd, 0) + " itens · " + moeda(p.totais.total) + " · " + (p.modalidade === "entrega" ? "Entrega" : "Retirada") + '</span><span class="novo-tempo">' + haTempo(p.quando) + "</span></button>").join("") + "</div></div>" : "") +
+      '<div class="quadro"><section class="coluna" data-drop="preparo"><div class="coluna-cab"><span>Em preparo <span class="badge">' + preparo.length + '</span></span></div><div class="coluna-corpo">' + (preparo.length ? preparo.map(card).join("") : '<div class="col-vazia">' + icone("package") + "Os pedidos aceitos aparecem aqui.</div>") + "</div></section>" +
+      '<section class="coluna">' + grupo("pronto", "Pronto", pronto, "Pedidos prontos aparecem aqui.") + grupo("saiu", "Em rota", saiu, icone("truck") + "Aqui ficam os pedidos a caminho dos clientes.") + grupo("concluido", "Finalizados", finalizados, "Nenhum pedido finalizado " + rotPer + ".") + "</section>" +
+      '<section class="detalhe-ped" id="detalhe-ped">' + detalhePedido(selPed ? BK.pedido(selPed) : null, cli) + "</section></div>" +
+      '<div class="cartao"><div class="linha" style="justify-content:space-between;align-items:center;margin-bottom:.75rem"><h3 style="font-size:1rem">Todos os pedidos</h3><span class="mini">' + lista.length + " pedido" + (lista.length === 1 ? "" : "s") + (q || filtroPed.status || comPeriodo ? " com os filtros acima" : "") + "</span></div>" +
+      (lista.length ? '<div style="overflow:auto"><table><thead><tr><th>Pedido</th><th>Quando</th><th>Cliente</th><th>Itens</th><th>Modalidade</th><th>Total</th><th>Status</th></tr></thead><tbody>' + lista.map((p) => '<tr class="clicavel' + (p.numero === selPed ? " linha-sel" : "") + '" data-linha="' + p.numero + '"><td><b>' + p.numero + "</b></td><td>" + fmt(p.quando) + "</td><td>" + esc(p.cliente.nome) + '<div class="mini">' + esc(p.cliente.telefone) + "</div></td><td>" + p.itens.reduce((s, i) => s + i.qtd, 0) + "</td><td>" + (p.modalidade === "entrega" ? "Entrega · " + esc(p.bairro) : "Retirada") + "</td><td><b>" + moeda(p.totais.total) + "</b></td><td>" + (ehNovo(p) ? '<span class="pill novo">Novo · aguardando aceite</span>' : pill(p.status)) + "</td></tr>").join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum pedido ' + (todos.length ? "com esse filtro." : 'ainda. Faça um pedido de teste no site, clique em "Simular pedido novo" ou gere exemplos em Configurações.') + "</div>") + "</div>";
+
     el.querySelectorAll("[data-f]").forEach((i) => i.addEventListener("input", () => { filtroPed[i.dataset.f] = i.value; telaPedidos(el); if (i.dataset.f === "busca") { const n = el.querySelector('[data-f="busca"]'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }));
-    el.querySelectorAll("[data-pedido]").forEach((tr) => tr.addEventListener("click", () => abrirPedido(tr.dataset.pedido)));
+    el.querySelectorAll("[data-sel]").forEach((b) => b.addEventListener("click", () => { selPed = b.dataset.sel; recusando = null; histAberto = false; telaPedidos(el); if (window.innerWidth < 1100) document.getElementById("detalhe-ped").scrollIntoView({ behavior: "smooth", block: "start" }); }));
+    el.querySelectorAll("[data-linha]").forEach((tr) => tr.addEventListener("click", () => { selPed = tr.dataset.linha; recusando = null; histAberto = false; telaPedidos(el); document.querySelector(".quadro").scrollIntoView({ behavior: "smooth", block: "start" }); }));
+    el.querySelectorAll("[data-recolher]").forEach((b) => b.addEventListener("click", () => { recolhido[b.dataset.recolher] = !recolhido[b.dataset.recolher]; telaPedidos(el); }));
+    ligarArrastar(el);
+    ligarDetalhe(el);
+    el.querySelector("[data-simular]").addEventListener("click", simularPedidoNovo);
     const ex = el.querySelector("[data-exportar-pedidos]"); if (ex) ex.addEventListener("click", () => baixarCsv("pedidos.csv", [["numero", "data", "cliente", "telefone", "email", "modalidade", "bairro", "endereco", "itens", "subtotal", "desconto", "taxa", "total", "pagamento", "status"]].concat(todos.map((p) => [p.numero, fmt(p.quando), p.cliente.nome, p.cliente.telefone, p.cliente.email, p.modalidade, p.bairro, p.endereco, p.itens.map((i) => i.qtd + "x " + i.nome).join("; "), p.totais.subtotal, p.totais.desconto, p.totais.taxa, p.totais.total, p.pagamento.metodo, p.status]))));
+  }
+
+  // arrastar e soltar cards entre as colunas (muda o status com as mesmas regras e mensagens dos botões)
+  const ROT_COL = { preparo: "Em preparo", pronto: "Pronto", saiu: "Em rota", concluido: "Finalizados" };
+  function podeMover(p, destino) {
+    if (!p || p.status === destino) return null;
+    if (["cancelado"].includes(p.status)) return "Pedido cancelado não pode ser movido.";
+    if (ehNovo(p) && destino !== "preparo") return "Aceite o pedido primeiro: arraste pra Em preparo ou clique em Aceitar.";
+    if (destino === "saiu" && p.modalidade !== "entrega") return "Pedido de retirada não passa por Em rota: de Pronto ele vai direto pra Finalizados.";
+    return "";
+  }
+  function ligarArrastar(el) {
+    let arrastando = null;
+    el.querySelectorAll("[data-arrastar]").forEach((c) => {
+      c.addEventListener("dragstart", (e) => { arrastando = c.dataset.arrastar; e.dataTransfer.setData("text/plain", arrastando); e.dataTransfer.effectAllowed = "move"; c.classList.add("arrastando"); el.querySelector(".quadro").classList.add("arrastando-ativo"); });
+      c.addEventListener("dragend", () => { c.classList.remove("arrastando"); el.querySelectorAll(".alvo-drop,.alvo-proibido").forEach((z) => z.classList.remove("alvo-drop", "alvo-proibido")); const q = el.querySelector(".quadro"); if (q) q.classList.remove("arrastando-ativo"); arrastando = null; });
+    });
+    el.querySelectorAll("[data-drop]").forEach((z) => {
+      z.addEventListener("dragover", (e) => { if (!arrastando) return; const msg = podeMover(BK.pedido(arrastando), z.dataset.drop); if (msg === null) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; /* solta mesmo na coluna proibida, pra mostrar o motivo */ z.classList.toggle("alvo-drop", !msg); z.classList.toggle("alvo-proibido", !!msg); });
+      z.addEventListener("dragleave", (e) => { if (!z.contains(e.relatedTarget)) z.classList.remove("alvo-drop", "alvo-proibido"); });
+      z.addEventListener("drop", (e) => {
+        e.preventDefault(); const n = e.dataTransfer.getData("text/plain") || arrastando; const p = BK.pedido(n); const destino = z.dataset.drop; z.classList.remove("alvo-drop", "alvo-proibido");
+        const msg = podeMover(p, destino); if (msg === null) return; if (msg) { toast(msg); return; }
+        if (ehNovo(p)) { selPed = n; aceitarPedido(n); return; }
+        if (destino === "concluido" && !confirm("Marcar o pedido " + n + " como finalizado?")) return;
+        mudarStatus(n, destino);
+      });
+    });
+  }
+  // painel da direita: o pedido aberto, com as ações do momento
+  function detalhePedido(p, cli) {
+    if (!p) return '<div class="detalhe-vazio">' + icone("package") + "<b>Nenhum pedido aberto</b><span>Clique em um pedido novo ou em um card das colunas para ver os detalhes aqui.</span></div>";
+    const c = cli[tel(p.cliente.telefone)]; const vip = c && c.n >= 5; const prev = previsao(p); const novo = ehNovo(p);
+    const stRot = novo ? "Novo pedido · aguardando aceite" : p.status === "cancelado" ? (p.recusa ? "Recusado" : "Cancelado") : (BK.STATUS.find((s) => s.id === p.status) || { rotulo: p.status }).rotulo;
+    let acoes = "";
+    if (recusando === p.numero) acoes = '<div class="recusa"><b>Recusar pedido ' + esc(p.numero) + '</b><label class="campo">Motivo<select data-motivo>' + MOTIVOS.map((m) => "<option>" + m + "</option>").join("") + '</select></label><label class="campo">Mensagem pro cliente (opcional)<textarea data-motivo-txt placeholder="ex.: acabou o pão de queijo, posso trocar por..."></textarea></label><p class="mini">O cliente recebe o aviso e o pagamento é estornado (na simulação, só fica registrado).</p><div class="linha" style="justify-content:flex-end"><button type="button" class="btn" data-acao="voltar">Voltar</button><button type="button" class="btn primario" data-acao="confirmar-recusa">Confirmar recusa</button></div></div>';
+    else if (novo) acoes = '<div class="acoes-ped"><button type="button" class="btn grande perigo" data-acao="recusar">' + icone("x") + 'Recusar</button><button type="button" class="btn grande aceitar" data-acao="aceitar">' + icone("check") + "Aceitar pedido</button></div>";
+    else if (p.status === "preparo") acoes = '<div class="acoes-ped"><button type="button" class="btn perigo" data-acao="cancelar">Cancelar pedido</button><button type="button" class="btn grande aceitar" data-st="pronto">' + icone("check") + "Marcar como pronto</button></div>";
+    else if (p.status === "pronto") acoes = '<div class="acoes-ped"><button type="button" class="btn perigo" data-acao="cancelar">Cancelar pedido</button>' + (p.modalidade === "entrega" ? '<button type="button" class="btn grande aceitar" data-st="saiu">' + icone("truck") + "Enviar pedido</button>" : '<button type="button" class="btn grande aceitar" data-st="concluido">' + icone("check") + "Cliente retirou</button>") + "</div>";
+    else if (p.status === "saiu") acoes = '<div class="acoes-ped"><button type="button" class="btn perigo" data-acao="cancelar">Cancelar pedido</button><button type="button" class="btn grande aceitar" data-st="concluido">' + icone("check") + "Confirmar entrega</button></div>";
+    const msgs = p.mensagens || [];
+    const rotHist = (h) => h.status === "pago" ? "Recebido (pago)" : h.status === "cancelado" ? "Cancelado" : (BK.STATUS.find((s) => s.id === h.status) || { rotulo: h.status }).rotulo;
+    return '<div class="det-cab"><span class="det-num">' + esc(p.numero) + '</span><div style="min-width:0;flex:1"><h2>' + esc(p.cliente.nome) + (vip ? ' <span class="super">★ Super cliente</span>' : "") + '</h2><p class="mini">Feito às <b>' + hora(p.quando) + "</b> · " + haTempo(p.quando) + " · " + esc(p.pagamento.metodo) + '</p></div><button type="button" class="btn pequeno" data-acao="fechar" title="Fechar">' + icone("x") + "</button></div>" +
+      '<div class="det-chips">' + (["cancelado", "concluido"].includes(p.status) ? "" : '<span class="det-chip">' + icone("clock") + (p.modalidade === "entrega" ? "Entrega prevista: " : "Retirada prevista: ") + "<b>" + hora(prev) + "</b></span>") + '<span class="det-chip">' + icone("user") + (c ? c.n + (c.n === 1 ? " pedido" : " pedidos") : "1º pedido") + '</span><a class="det-chip" target="_blank" href="' + wa(p.cliente.telefone, "Oi, " + (p.cliente.nome || "").split(" ")[0] + "! Sobre o pedido " + p.numero + ": ") + '">' + icone("phone") + esc(p.cliente.telefone) + "</a></div>" +
+      '<div class="det-bloco"><p class="det-status ' + (novo ? "novo" : p.status) + '">' + stRot + ' <span class="mini">' + (novo ? "chegou " + haTempo(p.quando) : "desde " + hora(desdeStatus(p))) + "</span></p>" +
+      (p.modalidade === "entrega" ? '<div class="det-end">' + icone("map-pin") + "<div>" + esc(p.endereco || "—") + '<br/><span class="mini">' + esc(p.bairro) + " · taxa " + moeda(p.totais.taxa) + '</span></div><span class="det-tag">' + icone("truck") + "Entrega própria</span></div>" : '<div class="det-end">' + icone("store") + '<div>Retirada na loja<br/><span class="mini">' + esc(cfg().endereco) + "</span></div></div>") + "</div>" +
+      '<div class="det-bloco"><table class="det-itens">' + p.itens.map((i) => '<tr><td class="q">' + i.qtd + "×</td><td>" + esc(i.nome) + '</td><td class="n">' + moeda(i.qtd * i.preco) + "</td></tr>").join("") +
+      '<tr class="sub"><td></td><td>Subtotal</td><td class="n">' + moeda(p.totais.subtotal) + "</td></tr>" + (p.cupom ? '<tr class="sub"><td></td><td>Cupom ' + esc(p.cupom.codigo) + '</td><td class="n">− ' + moeda(p.totais.desconto) + "</td></tr>" : "") + (p.totais.taxa ? '<tr class="sub"><td></td><td>Taxa de entrega</td><td class="n">' + moeda(p.totais.taxa) + "</td></tr>" : "") + '<tr class="tot"><td></td><td>Total · pago</td><td class="n">' + moeda(p.totais.total) + "</td></tr></table>" + (p.cliente.nascimento ? '<p class="mini">🎂 Nascimento: ' + p.cliente.nascimento.split("-").reverse().join("/") + "</p>" : "") + "</div>" +
+      '<details class="det-hist"' + (histAberto ? " open" : "") + "><summary>Histórico e mensagens (" + ((p.historico || []).length + msgs.length) + ")</summary>" + (p.historico || []).map((h) => '<div class="mini">' + fmt(h.quando) + " · <b>" + esc(rotHist(h)) + "</b>" + (h.obs ? " · " + esc(h.obs) : "") + "</div>").join("") + msgs.map((m) => '<div class="mini" style="color:#2F7D45">' + fmt(m.quando) + " · 💬 “" + esc(m.texto) + "”</div>").join("") + "</details>" +
+      '<div class="det-rodape"><button type="button" class="btn pequeno" data-acao="imprimir">' + icone("package") + "Imprimir comanda</button>" + acoes + "</div>";
+  }
+  function ligarDetalhe(el) {
+    const box = el.querySelector("#detalhe-ped"); if (!box) return; const n = selPed;
+    const d = box.querySelector(".det-hist"); if (d) d.addEventListener("toggle", () => (histAberto = d.open));
+    box.querySelectorAll("[data-st]").forEach((b) => b.addEventListener("click", () => mudarStatus(n, b.dataset.st)));
+    box.querySelectorAll("[data-acao]").forEach((b) => b.addEventListener("click", () => {
+      const a = b.dataset.acao;
+      if (a === "fechar") { selPed = null; recusando = null; render(); }
+      else if (a === "aceitar") aceitarPedido(n);
+      else if (a === "recusar") { recusando = n; render(); }
+      else if (a === "voltar") { recusando = null; render(); }
+      else if (a === "confirmar-recusa") recusarPedido(n, box.querySelector("[data-motivo]").value, box.querySelector("[data-motivo-txt]").value.trim());
+      else if (a === "cancelar") mudarStatus(n, "cancelado");
+      else if (a === "imprimir") imprimirComanda(BK.pedido(n));
+    }));
+  }
+  function aceitarPedido(numero) {
+    const p = BK.pedido(numero); if (!p || !ehNovo(p)) return;
+    BK.mudarStatus(numero, "preparo", "Aceito pela loja");
+    if (BK.mensagensAuto().envio.pago) { const q = BK.pedido(numero); q.mensagens = q.mensagens || []; q.mensagens.push({ quando: new Date().toISOString(), status: "preparo", texto: preencher(modelos().pago, q), canal: "whatsapp", envio: "automatico-simulado" }); BK.salvarPedido(q); }
+    toast("Pedido " + numero + " aceito. Foi pra Em preparo e o cliente foi avisado.");
+    render();
+  }
+  function recusarPedido(numero, motivo, texto) {
+    const p = BK.pedido(numero); if (!p) return;
+    BK.mudarStatus(numero, "cancelado", "Recusado pela loja: " + motivo + (texto ? " · " + texto : ""));
+    const q = BK.pedido(numero); q.recusa = { motivo, texto, quando: new Date().toISOString() }; q.mensagens = q.mensagens || [];
+    const ma = BK.mensagensAuto(); if (ma.envio.cancelado !== false) q.mensagens.push({ quando: new Date().toISOString(), status: "cancelado", texto: preencher(ma.textos.cancelado, q) + (texto ? " " + texto : ""), canal: "whatsapp", envio: "automatico-simulado" });
+    BK.salvarPedido(q); recusando = null; toast("Pedido " + numero + " recusado." + (ma.envio.cancelado !== false ? " O cliente foi avisado." : "")); render();
+  }
+  function imprimirComanda(p) {
+    if (!p) return; const w = window.open("", "_blank", "width=380,height=600"); if (!w) return;
+    w.document.write("<html><head><title>" + esc(p.numero) + "</title><style>body{font-family:monospace;font-size:13px;padding:12px}h1{font-size:18px;margin:0 0 6px}hr{border:0;border-top:1px dashed #000}td.n{text-align:right}</style></head><body><h1>" + esc(cfg().nomeCompleto) + "</h1>Pedido <b>" + esc(p.numero) + "</b> · " + fmt(p.quando) + "<hr/>" + esc(p.cliente.nome) + "<br/>" + esc(p.cliente.telefone) + "<br/>" + (p.modalidade === "entrega" ? "ENTREGA: " + esc(p.endereco) + " - " + esc(p.bairro) : "RETIRADA NA LOJA") + '<hr/><table width="100%">' + p.itens.map((i) => "<tr><td>" + i.qtd + "x " + esc(i.nome) + '</td><td class="n">' + moeda(i.qtd * i.preco) + "</td></tr>").join("") + "</table><hr/>Total: <b>" + moeda(p.totais.total) + "</b> (" + esc(p.pagamento.metodo) + " - PAGO)<script>print()<\/script></body></html>");
+    w.document.close();
+  }
+  // simulação: cria um pedido pago como se tivesse acabado de chegar pelo site
+  function simularPedidoNovo() {
+    const nomes = [["Ana Mariel Gonçalves", "48991230001"], ["Thalita Martins", "48991230002"], ["Dyego Souza", "48991230003"], ["Carla Mendes", "48991110003"], ["Bruno Lima", "48991110002"]];
+    const c = nomes[Math.floor(Math.random() * nomes.length)]; const prods = BK.produtosAtivos(); const itens = [];
+    for (let j = 0, n = 1 + Math.floor(Math.random() * 3); j < n; j++) { const p = prods[Math.floor(Math.random() * prods.length)]; if (!itens.some((i) => i.id === p.id)) itens.push({ id: p.id, nome: p.nome, categoria: p.categoria, qtd: 1 + Math.floor(Math.random() * 2), preco: p.preco }); }
+    const entrega = Math.random() < 0.7; const tx = entrega ? cfg().taxasEntrega[Math.floor(Math.random() * 6)] : null; const sub = itens.reduce((s, i) => s + i.qtd * i.preco, 0); const total = sub + (tx ? tx.taxa : 0); const agora = new Date().toISOString(); const met = Math.random() < 0.5 ? "Pix" : "Cartão final 4242";
+    BK.salvarPedido({ numero: BK.novoNumero(), quando: agora, cliente: { nome: c[0], telefone: c[1], email: c[0].split(" ")[0].toLowerCase() + "@exemplo.com" }, modalidade: entrega ? "entrega" : "retirada", endereco: entrega ? "Rua das Flores, " + (100 + Math.floor(Math.random() * 900)) : "", bairro: tx ? tx.bairro : "", itens, cupom: null, totais: { subtotal: sub, desconto: 0, taxa: tx ? tx.taxa : 0, total }, pagamento: { metodo: met, codigo: "SIM" + Date.now().toString(36).toUpperCase(), valor: total }, status: "pago", historico: [{ status: "pago", quando: agora, obs: "Pagamento " + met + " (simulado)" }], mensagens: [], exemplo: true });
   }
   let origemCliente = null;
   function abrirPedido(numero, deCliente) {
     const p = BK.pedido(numero); if (!p) return; origemCliente = deCliente || null;
-    const etapas = BK.STATUS.filter((s) => !(s.soEntrega && p.modalidade !== "entrega") && !(s.soRetirada && p.modalidade !== "retirada"));
+    const etapas = ["pago", "preparo", "pronto", "saiu", "concluido"].map((id) => BK.STATUS.find((s) => s.id === id)).filter((s) => s && !(s.soEntrega && p.modalidade !== "entrega")).map((s) => s.id === "pronto" ? Object.assign({}, s, { rotulo: "Pronto" }) : s);
     const idx = etapas.findIndex((s) => s.id === p.status);
     const g = gaveta((origemCliente ? '<button class="btn pequeno" data-voltar-cliente style="margin-bottom:.75rem">' + icone("arrow-left") + "Voltar ao cliente</button>" : "") + '<p class="eyebrow">Pedido</p><h2>' + p.numero + " · " + pill(p.status) + '</h2><p class="mini">' + fmt(p.quando) + " · " + esc(p.pagamento.metodo) + " #" + esc(p.pagamento.codigo) + "</p>" +
       '<div class="cartao" style="margin-top:1rem"><b>' + esc(p.cliente.nome) + '</b><div class="mini">' + esc(p.cliente.telefone) + " · " + esc(p.cliente.email) + "</div><div class=\"mini\" style=\"margin-top:.35rem\">" + (p.modalidade === "entrega" ? "🚚 " + esc(p.endereco) + " — " + esc(p.bairro) + " (taxa " + moeda(p.totais.taxa) + ")" : "🏪 Retirada na loja") + '</div><div class="linha" style="margin-top:.75rem"><a class="btn pequeno whats" target="_blank" href="' + wa(p.cliente.telefone, "Oi, " + (p.cliente.nome || "").split(" ")[0] + "! Sobre o pedido " + p.numero + ": ") + '">' + icone("message-circle") + "Chamar no WhatsApp</a></div></div>" +
       '<div class="cartao" style="margin-top:.75rem"><table>' + p.itens.map((i) => "<tr><td>" + i.qtd + "× " + esc(i.nome) + '</td><td style="text-align:right">' + moeda(i.qtd * i.preco) + "</td></tr>").join("") + '<tr><td class="mini">Subtotal' + (p.cupom ? " · cupom " + esc(p.cupom.codigo) + " (-" + moeda(p.totais.desconto) + ")" : "") + (p.totais.taxa ? " · taxa " + moeda(p.totais.taxa) : "") + '</td><td style="text-align:right"><b>' + moeda(p.totais.total) + "</b></td></tr></table></div>" +
-      '<h3 style="margin:1.25rem 0 .25rem;font-size:1rem">Avançar status</h3><p class="mini">Ao marcar <b>Saiu pra entrega</b> (ou <b>Pronto pra retirada</b>) o cliente recebe a mensagem automática no WhatsApp' + (cfg().mensagensAuto === false ? " (desligado em Configurações)" : "") + ".</p>" +
+      '<h3 style="margin:1.25rem 0 .25rem;font-size:1rem">Avançar status</h3><p class="mini">Ao marcar <b>Saiu pra entrega</b> (ou <b>Pronto pra retirada</b>) o cliente recebe a mensagem automática no WhatsApp' + (!BK.mensagensAuto().envio.saiu ? " (desligado pelo Franchising)" : "") + ".</p>" +
       '<div class="etapas">' + etapas.map((s, i) => '<button class="btn pequeno ' + (i < idx ? "feito" : i === idx ? "atual" : "") + '" data-status="' + s.id + '"' + (p.status === "cancelado" ? " disabled" : "") + ">" + (i < idx ? "✓ " : "") + s.rotulo + "</button>").join("") + "</div>" +
       '<div class="linha" style="margin-top:.5rem">' + (p.status !== "cancelado" && p.status !== "concluido" ? '<button class="btn pequeno perigo" data-status="cancelado">Cancelar pedido</button>' : "") + "</div>" +
       '<h3 style="margin:1.25rem 0 .5rem;font-size:1rem">Histórico</h3><div class="cartao">' + (p.historico || []).map((h) => '<div class="mini" style="padding:.25rem 0">' + fmt(h.quando) + " · <b>" + esc((BK.STATUS.find((s) => s.id === h.status) || { rotulo: h.status }).rotulo) + "</b>" + (h.obs ? " · " + esc(h.obs) : "") + "</div>").join("") + (p.mensagens || []).map((m) => '<div class="mini" style="padding:.25rem 0;color:#2F7D45">' + fmt(m.quando) + " · 💬 mensagem automática: “" + esc(m.texto) + "”</div>").join("") + "</div>");
@@ -76,9 +218,9 @@
   function mudarStatus(numero, status) {
     const p = BK.pedido(numero); if (!p || p.status === status) return;
     if (status === "cancelado" && !confirm("Cancelar o pedido " + numero + "?")) return;
-    const auto = cfg().mensagensAuto !== false;
+    const ma = BK.mensagensAuto();
     let texto = null;
-    if (auto && (status === "saiu" || status === "pronto" || (cfg().mensagemConcluido && status === "concluido"))) texto = preencher(modelos()[status], p);
+    if ((status === "saiu" && ma.envio.saiu) || (status === "pronto" && p.modalidade !== "entrega" && ma.envio.pronto) || (status === "concluido" && ma.envio.concluido)) texto = preencher(ma.textos[status], p);
     BK.mudarStatus(numero, status, "pelo painel");
     if (texto) {
       // Simulação do envio automático: a mensagem é registrada como enviada e aparece pro cliente na página do pedido.
@@ -86,16 +228,34 @@
       const q = BK.pedido(numero); q.mensagens = q.mensagens || []; q.mensagens.push({ quando: new Date().toISOString(), status, texto, canal: "whatsapp", envio: "automatico-simulado" }); BK.salvarPedido(q);
       toast("Status atualizado. Mensagem enviada automaticamente ao cliente (simulação).");
     } else toast("Status atualizado: " + ((BK.STATUS.find((s) => s.id === status) || { rotulo: status }).rotulo));
-    abrirPedido(numero, origemCliente); render();
+    // v3: na tela de Pedidos o pedido fica aberto no painel da direita; fora dela (ex.: vindo de Clientes), na gaveta
+    if (telaAtual === "pedidos" && !document.querySelector(".fundo")) { selPed = numero; render(); } else { abrirPedido(numero, origemCliente); render(); }
   }
 
   // ---------- CLIENTES ----------
   let buscaCli = "";
+  const ordCli = { col: "ultimo", dir: "desc" };
+  const COLS_CLI = [
+    { id: "nome", rotulo: "Cliente", texto: true, v: (c) => c.nome || "" },
+    { id: "ultimo", rotulo: "Último pedido", v: (c) => new Date(c.ultimo || 0).getTime() || 0 },
+    { id: "n", rotulo: "Pedidos", v: (c) => c.n },
+    { id: "total", rotulo: "Total gasto", v: (c) => c.total },
+    { id: "ticket", rotulo: "Ticket", v: (c) => c.ticket },
+    { id: "bairro", rotulo: "Bairro", texto: true, v: (c) => c.bairro || "" },
+    { id: "prefere", rotulo: "Prefere", texto: true, v: (c, pf) => pf(c) },
+    { id: "cadastro", rotulo: "Cadastro", v: (c) => (c.conta ? c.cadastroPct : -1) }
+  ];
   function telaClientes(el) {
+    const prefere = (c) => ((c.modalidades.entrega || 0) >= (c.modalidades.retirada || 0) ? "Entrega" : "Retirada");
     const todos = BK.clientes().sort((a, b) => b.ultimo.localeCompare(a.ultimo));
     const q = buscaCli.trim().toLowerCase(); const cs = q ? todos.filter((c) => (c.nome + " " + c.email + " " + c.telefone).toLowerCase().includes(q)) : todos;
+    // ordenação: clicar no topo da coluna alterna crescente/decrescente
+    const col = COLS_CLI.find((x) => x.id === ordCli.col) || COLS_CLI[1]; const sinal = ordCli.dir === "asc" ? 1 : -1;
+    cs.sort((a, b) => { const va = col.v(a, prefere), vb = col.v(b, prefere); return sinal * (typeof va === "string" ? va.localeCompare(vb, "pt-BR") : va - vb); });
+    const th = (x) => '<th class="ordenavel' + (x.id === ordCli.col ? " on" : "") + '" data-ord-cli="' + x.id + '" title="Ordenar">' + x.rotulo + ' <span class="seta">' + (x.id === ordCli.col ? (ordCli.dir === "asc" ? "▲" : "▼") : "↕") + "</span></th>";
     el.innerHTML = topo("CRM", "Clientes", "Cadastro automático a partir dos pedidos pagos.", '<button class="btn" data-exportar-clientes>Exportar CSV</button>') +
-      '<div class="cartao"><div class="linha" style="margin-bottom:1rem"><label class="campo" style="flex:1">Buscar por nome, e-mail ou telefone<input data-busca-cli value="' + esc(buscaCli) + '" placeholder="ex.: Ana, ana@..., 48 9..."/></label><span class="mini" style="padding-bottom:.6rem">' + cs.length + " de " + todos.length + " clientes</span></div>" + (cs.length ? '<div style="overflow:auto"><table><thead><tr><th>Cliente</th><th>Cadastro</th><th>Pedidos</th><th>Total gasto</th><th>Ticket</th><th>Último pedido</th><th>Bairro</th><th>Prefere</th></tr></thead><tbody>' + cs.map((c) => '<tr class="clicavel" data-cli="' + c.telefone + '"><td><b>' + esc(c.nome) + '</b><div class="mini">' + esc(c.telefone) + " · " + esc(c.email || "") + (c.genero || c.idade != null ? " · " + [c.genero, c.idade != null ? c.idade + " anos" : ""].filter(Boolean).join(", ") : "") + "</div></td><td>" + (c.conta ? '<span class="pill ' + (c.cadastroPct === 100 ? "concluido" : "preparo") + '">' + c.cadastroPct + "%</span>" : '<span class="pill cancelado">sem conta</span>') + "</td><td>" + c.n + "</td><td><b>" + moeda(c.total) + "</b></td><td>" + moeda(c.ticket) + "</td><td>" + fmtD(c.ultimo) + '<div class="mini">há ' + c.diasSemPedido + " dias</div></td><td>" + esc(c.bairro || "—") + "</td><td>" + ((c.modalidades.entrega || 0) >= (c.modalidades.retirada || 0) ? "Entrega" : "Retirada") + "</td></tr>").join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum cliente ainda.</div>') + "</div>";
+      '<div class="cartao"><div class="linha" style="margin-bottom:1rem"><label class="campo" style="flex:1">Buscar por nome, e-mail ou telefone<input data-busca-cli value="' + esc(buscaCli) + '" placeholder="ex.: Ana, ana@..., 48 9..."/></label><span class="mini" style="padding-bottom:.6rem">' + cs.length + " de " + todos.length + " clientes</span></div>" + (cs.length ? '<div style="overflow:auto"><table><thead><tr>' + COLS_CLI.map(th).join("") + "</tr></thead><tbody>" + cs.map((c) => '<tr class="clicavel" data-cli="' + c.telefone + '"><td><b>' + esc(c.nome) + '</b><div class="mini">' + esc(c.telefone) + " · " + esc(c.email || "") + (c.genero || c.idade != null ? " · " + [c.genero, c.idade != null ? c.idade + " anos" : ""].filter(Boolean).join(", ") : "") + "</div></td><td>" + fmtD(c.ultimo) + '<div class="mini">há ' + c.diasSemPedido + " dias</div></td><td>" + c.n + "</td><td><b>" + moeda(c.total) + "</b></td><td>" + moeda(c.ticket) + "</td><td>" + esc(c.bairro || "—") + "</td><td>" + prefere(c) + "</td><td>" + (c.conta ? '<span class="pill ' + (c.cadastroPct === 100 ? "concluido" : "preparo") + '">' + c.cadastroPct + "%</span>" : '<span class="pill cancelado">sem conta</span>') + "</td></tr>").join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum cliente ainda.</div>') + "</div>";
+    el.querySelectorAll("[data-ord-cli]").forEach((h) => h.addEventListener("click", () => { const id = h.dataset.ordCli; if (ordCli.col === id) ordCli.dir = ordCli.dir === "asc" ? "desc" : "asc"; else { ordCli.col = id; ordCli.dir = (COLS_CLI.find((x) => x.id === id) || {}).texto ? "asc" : "desc"; } telaClientes(el); }));
     el.querySelectorAll("[data-cli]").forEach((tr) => tr.addEventListener("click", () => abrirCliente(tr.dataset.cli)));
     const bi = el.querySelector("[data-busca-cli]"); bi.addEventListener("input", () => { buscaCli = bi.value; telaClientes(el); const n = el.querySelector("[data-busca-cli]"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); });
     const ex = el.querySelector("[data-exportar-clientes]"); if (ex) ex.addEventListener("click", () => exportarClientes(cs));
@@ -119,11 +279,11 @@
   function telaProdutos(el) {
     const todos = BK.produtos();
     const lista = todos.filter((p) => (!filtroProd.cat || p.categoria === filtroProd.cat) && (!filtroProd.busca || p.nome.toLowerCase().includes(filtroProd.busca.toLowerCase())));
-    el.innerHTML = topo("Catálogo", "Produtos", todos.length + " produtos · " + todos.filter((p) => p.ativo !== false).length + " ativos no site", '<button class="btn" data-restaurar>Restaurar catálogo original</button><button class="btn primario" data-novo>' + icone("plus") + "Novo produto</button>") +
+    el.innerHTML = topo("Catálogo", "Produtos", todos.length + " produtos · " + todos.filter((p) => p.ativo !== false).length + " ativos no site", '<button class="btn" data-restaurar>Restaurar catálogo original</button>') +
       '<div class="cartao"><div class="linha" style="margin-bottom:1rem"><label class="campo">Buscar<input data-f="busca" value="' + esc(filtroProd.busca) + '" placeholder="nome do produto"/></label><label class="campo">Categoria<select data-f="cat"><option value="">Todas</option>' + BK.CATEGORIAS.map((c) => '<option' + (filtroProd.cat === c ? " selected" : "") + ">" + c + "</option>").join("") + "</select></label></div>" +
-      '<div style="overflow:auto"><table><thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Situação</th><th></th></tr></thead><tbody>' + lista.map((p) => '<tr><td><img class="thumb" src="../' + esc(p.imagem || "") + '" onerror="this.src=\'../imagens/marca/logo-bread-king-CVrHv7_B.png\'"/></td><td><b>' + esc(p.nome) + '</b><div class="mini">' + esc(p.peso || "") + "</div></td><td>" + esc(p.categoria) + "</td><td><b>" + moeda(p.preco) + "</b></td><td>" + (p.ativo === false ? '<span class="pill inativo">Oculto</span>' : '<span class="pill ativo">Ativo</span>') + (p.destaque ? ' <span class="pill destaque">⭐ Destaque</span>' : "") + '</td><td style="white-space:nowrap"><button class="btn pequeno" data-editar="' + p.id + '">Editar</button> <button class="btn pequeno" data-toggle="' + p.id + '">' + (p.ativo === false ? "Ativar" : "Ocultar") + '</button> <button class="btn pequeno perigo" data-excluir="' + p.id + '">Excluir</button></td></tr>').join("") + "</tbody></table></div></div>";
+      '<div style="overflow:auto"><table><thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Situação</th><th></th></tr></thead><tbody>' + lista.map((p) => '<tr><td><img class="thumb" src="../' + esc(p.imagem || "") + '" onerror="this.src=\'../imagens/marca/logo-bread-king-CVrHv7_B.png\'"/></td><td><b>' + esc(p.nome) + '</b><div class="mini">' + esc(p.peso || "") + "</div></td><td>" + esc(p.categoria) + "</td><td><b>" + moeda(p.preco) + "</b></td><td>" + (p.ativo === false ? '<span class="pill inativo">Oculto</span>' : '<span class="pill ativo">Ativo</span>') + (p.destaque ? ' <span class="pill destaque">⭐ Destaque</span>' : "") + (p.rede ? ' <span class="pill preparo" title="Produto do catálogo da rede: definido pelo Franchising">Franchising</span>' : "") + '</td><td style="white-space:nowrap">' + (p.rede ? "" : '<button class="btn pequeno" data-editar="' + p.id + '">Editar</button> ') + '<button class="btn pequeno" data-toggle="' + p.id + '">' + (p.ativo === false ? "Ativar" : "Ocultar") + "</button>" + (p.rede ? "" : ' <button class="btn pequeno perigo" data-excluir="' + p.id + '">Excluir</button>') + "</td></tr>").join("") + "</tbody></table></div></div>";
     el.querySelectorAll("[data-f]").forEach((i) => i.addEventListener("input", () => { filtroProd[i.dataset.f] = i.value; telaProdutos(el); if (i.dataset.f === "busca") { const n = el.querySelector('[data-f="busca"]'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }));
-    el.querySelector("[data-novo]").addEventListener("click", () => editarProduto(null));
+    // a unidade não cria produtos: o catálogo vem do Franchising
     el.querySelector("[data-restaurar]").addEventListener("click", () => { if (confirm("Isso apaga todas as edições de produtos e volta ao catálogo clonado. Continuar?")) { BK.restaurarCatalogo(); toast("Catálogo restaurado."); render(); } });
     el.querySelectorAll("[data-editar]").forEach((b) => b.addEventListener("click", () => editarProduto(b.dataset.editar)));
     el.querySelectorAll("[data-toggle]").forEach((b) => b.addEventListener("click", () => { const p = BK.produto(b.dataset.toggle); p.ativo = p.ativo === false; BK.salvarProduto(p); toast(p.ativo ? "Produto visível no site." : "Produto oculto do site."); }));
@@ -208,13 +368,24 @@
     if (seg.produto) r = r.sort((a, b) => (b.produtos[seg.produto] || 0) - (a.produtos[seg.produto] || 0));
     return r;
   }
+  // público salvo em edição (índice em segmentosSalvos) e nome digitado
+  let segEdit = null, segEditNome = "";
+  const salvarSegmentos = (l) => BK.salvarConfig(Object.assign(BK.ler("bk_db_config", {}), { segmentosSalvos: l }));
+  const resumoFiltros = (f) => { const n = Object.keys(f || {}).filter((k) => f[k] !== "" && f[k] != null).length; return n + " filtro" + (n === 1 ? "" : "s"); };
   function telaSegmentos(el) {
-    const cs = BK.clientes(); const res = aplicarSeg(cs); const prods = BK.produtos(); const salvos = cfg().segmentosSalvos || [];
+    const cs = BK.clientes(); const res = aplicarSeg(cs); const prods = BK.produtos(); const salvos = cfg().segmentosSalvos || []; const recSeg = disparosRecentes();
+    if (segEdit != null && !salvos[segEdit]) segEdit = null;
     const sel = (nome, rot, ops) => '<label class="campo">' + rot + '<select data-s="' + nome + '"><option value="">—</option>' + ops.map((o) => '<option value="' + esc(o[0]) + '"' + (String(seg[nome]) === String(o[0]) ? " selected" : "") + ">" + esc(o[1]) + "</option>").join("") + "</select></label>";
     const inp = (nome, rot, tipo, ph) => '<label class="campo">' + rot + '<input data-s="' + nome + '" type="' + (tipo || "text") + '" value="' + esc(seg[nome]) + '" placeholder="' + (ph || "") + '"/></label>';
+    const temFiltro = Object.keys(seg).some((k) => seg[k] !== "" && seg[k] != null);
     el.innerHTML = topo("Campanhas", "Segmentações", "Combine filtros, veja quem entra e dispare no WhatsApp. Sem API, o envio abre uma conversa por cliente.", '<button class="btn" data-limpar-seg>Limpar filtros</button>') +
-      '<div class="cartao" style="margin-bottom:1rem"><p class="eyebrow" style="margin-bottom:.5rem">Públicos prontos</p><div class="lista-seg">' + PRONTAS.concat(salvos).map((s, i) => '<div class="card-seg" data-pronta="' + i + '"><b>' + esc(s.nome) + '</b><span class="mini">' + esc(s.desc || "") + "</span></div>").join("") + "</div></div>" +
-      '<div class="cartao"><p class="eyebrow" style="margin-bottom:.5rem">Filtros</p><div class="grade3">' +
+      '<div class="cartao" style="margin-bottom:1rem"><p class="eyebrow" style="margin-bottom:.5rem">Públicos salvos</p>' +
+      (salvos.length ? '<div class="lista-seg">' + salvos.map((s, i) => '<div class="card-seg salvo' + (segEdit === i ? " editando" : "") + '" data-salvo="' + i + '"><b>' + esc(s.nome) + '</b><span class="mini">' + resumoFiltros(s.f) + " · " + esc(s.desc || "") + '</span><span class="acoes-seg"><button type="button" class="btn pequeno" data-editar-seg="' + i + '">Editar</button><button type="button" class="btn pequeno perigo" data-excluir-seg="' + i + '">Excluir</button></span></div>').join("") + "</div>"
+        : '<p class="mini">Nenhum público salvo ainda. Monte os filtros abaixo e clique em "Salvar público".</p>') + "</div>" +
+      '<div class="cartao" style="margin-bottom:1rem"><p class="eyebrow" style="margin-bottom:.5rem">Públicos prontos</p><div class="lista-seg">' + PRONTAS.map((s, i) => '<div class="card-seg" data-pronta="' + i + '"><b>' + esc(s.nome) + '</b><span class="mini">' + esc(s.desc || "") + "</span></div>").join("") + "</div></div>" +
+      '<div class="cartao">' +
+      (segEdit != null ? '<div class="aviso-edicao"><div><b>Editando o público “' + esc(salvos[segEdit].nome) + '”</b><span class="mini">Ajuste o nome e os filtros e clique em Salvar alterações.</span></div><label class="campo">Nome do público<input data-nome-seg value="' + esc(segEditNome) + '"/></label><div class="linha"><button type="button" class="btn pequeno" data-cancelar-edicao>Cancelar</button><button type="button" class="btn pequeno primario" data-salvar-edicao>Salvar alterações</button></div></div>' : "") +
+      '<p class="eyebrow" style="margin-bottom:.5rem">Filtros</p><div class="grade3">' +
       inp("ultimoDe", "Último pedido de", "date") + inp("ultimoAte", "Último pedido até", "date") + inp("inativoDias", "Sem pedir há (dias) ≥", "number", "ex.: 45") +
       inp("pedidosMin", "Nº de pedidos ≥", "number") + inp("pedidosMax", "Nº de pedidos ≤", "number") + inp("top", "Top % em gasto", "number", "ex.: 20") +
       sel("produto", "Comprou o produto", prods.map((p) => [p.id, p.nome])) + sel("categoria", "Comprou a categoria", BK.CATEGORIAS.map((c) => [c, c])) + sel("categoriaNunca", "Nunca comprou a categoria", BK.CATEGORIAS.map((c) => [c, c])) +
@@ -223,14 +394,21 @@
       sel("aniversarioMes", "Aniversário no mês", MESES.map((m, i) => [String(i + 1), m])) + inp("aniversarioDias", "Aniversário em até (dias)", "number", "ex.: 7") +
       sel("genero", "Gênero", [["Feminino", "Feminino"], ["Masculino", "Masculino"], ["Outro", "Outro"]]) + inp("idadeMin", "Idade ≥", "number") + inp("idadeMax", "Idade ≤", "number") + sel("cadastro", "Cadastro", [["completo", "Completo (100%)"], ["incompleto", "Com conta, incompleto"], ["semconta", "Sem conta no site"], ["semcompra", "Criou conta e nunca comprou"]]) + "</div>" +
       '<p class="mini" style="margin-top:.5rem">Aniversário vem do campo opcional "nascimento" no pedido. Clientes com data informada: ' + cs.filter((c) => c.nascimento).length + " de " + cs.length + ".</p>" +
-      '<div class="linha" style="margin-top:1rem;align-items:center"><h3 style="font-size:1.1rem">' + res.length + " cliente" + (res.length === 1 ? "" : "s") + " no público</h3><span style=\"flex:1\"></span><button class=\"btn pequeno\" data-salvar-seg>Salvar público</button><button class=\"btn pequeno\" data-csv-seg" + (res.length ? "" : " disabled") + ">Exportar CSV</button><button class=\"btn pequeno primario\" data-criar-camp" + (res.length ? "" : " disabled") + ">Criar campanha</button></div>" +
+      '<div class="linha" style="margin-top:1rem;align-items:center"><h3 style="font-size:1.1rem">' + res.length + " cliente" + (res.length === 1 ? "" : "s") + " no público</h3><span style=\"flex:1\"></span>" + (segEdit == null ? '<button class="btn pequeno" data-salvar-seg' + (temFiltro ? "" : " disabled") + ">Salvar público</button>" : "") + "<button class=\"btn pequeno\" data-csv-seg" + (res.length ? "" : " disabled") + ">Exportar CSV</button><button class=\"btn pequeno primario\" data-criar-camp" + (res.length ? "" : " disabled") + ">Criar campanha</button></div>" +
       '<label class="campo" style="margin-top:.75rem">Mensagem da campanha (use {nome})<textarea data-msg>' + esc(msgSeg) + "</textarea></label>" +
-      (res.length ? '<div style="overflow:auto;margin-top:.75rem"><table><thead><tr><th>Cliente</th><th>Pedidos</th><th>Total</th><th>Último</th><th>Bairro</th><th></th></tr></thead><tbody>' + res.map((c) => "<tr><td><b>" + esc(c.nome) + '</b><div class="mini">' + esc(c.telefone) + "</div></td><td>" + c.n + "</td><td>" + moeda(c.total) + "</td><td>" + fmtD(c.ultimo) + "</td><td>" + esc(c.bairro || "—") + '</td><td><a class="btn pequeno whats" target="_blank" data-disparo="' + c.telefone + '" href="' + wa(c.telefone, msgSeg.replace(/\{nome\}/g, c.nome.split(" ")[0])) + '">' + icone("message-circle") + "Enviar</a></td></tr>").join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum cliente com esses filtros.</div>') + "</div>";
+      (res.length ? '<div style="overflow:auto;margin-top:.75rem"><table><thead><tr><th>Cliente</th><th>Pedidos</th><th>Total</th><th>Último</th><th>Bairro</th><th></th></tr></thead><tbody>' + res.map((c) => "<tr><td><b>" + esc(c.nome) + '</b><div class="mini">' + esc(c.telefone) + "</div></td><td>" + c.n + "</td><td>" + moeda(c.total) + "</td><td>" + fmtD(c.ultimo) + "</td><td>" + esc(c.bairro || "—") + '</td><td>' + (recSeg[tel(c.telefone)] ? '<span class="mini" title="Regra da rede: 1 disparo a cada 7 dias">recebeu disparo em ' + fmtD(recSeg[tel(c.telefone)]) + "</span>" : '<a class="btn pequeno whats" target="_blank" data-disparo="' + c.telefone + '" href="' + wa(c.telefone, msgSeg.replace(/\{nome\}/g, c.nome.split(" ")[0])) + '">' + icone("message-circle") + "Enviar</a>") + "</td></tr>").join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum cliente com esses filtros.</div>') + "</div>";
     el.querySelectorAll("[data-s]").forEach((i) => i.addEventListener("change", () => { seg[i.dataset.s] = i.value; telaSegmentos(el); }));
     el.querySelector("[data-msg]").addEventListener("input", (e) => { msgSeg = e.target.value; el.querySelectorAll("[data-disparo]").forEach((a) => { const c = cs.find((x) => x.telefone === a.dataset.disparo); a.href = wa(c.telefone, msgSeg.replace(/\{nome\}/g, c.nome.split(" ")[0])); }); });
     el.querySelector("[data-limpar-seg]").addEventListener("click", () => { Object.keys(seg).forEach((k) => (seg[k] = "")); telaSegmentos(el); });
-    el.querySelectorAll("[data-pronta]").forEach((d) => d.addEventListener("click", () => { const s = PRONTAS.concat(salvos)[Number(d.dataset.pronta)]; Object.keys(seg).forEach((k) => (seg[k] = "")); Object.assign(seg, s.f); telaSegmentos(el); }));
-    el.querySelector("[data-salvar-seg]").addEventListener("click", () => { const nome = prompt("Nome do público:"); if (!nome) return; const c = cfg(); const l = c.segmentosSalvos || []; l.push({ nome, desc: "salvo em " + fmtD(new Date().toISOString()), f: Object.assign({}, seg) }); BK.salvarConfig(Object.assign(BK.ler("bk_db_config", {}), { segmentosSalvos: l })); toast("Público salvo."); });
+    el.querySelectorAll("[data-pronta]").forEach((d) => d.addEventListener("click", () => { Object.keys(seg).forEach((k) => (seg[k] = "")); Object.assign(seg, PRONTAS[Number(d.dataset.pronta)].f); telaSegmentos(el); }));
+    // clicar no card aplica os filtros; Editar abre a edição; Excluir remove
+    el.querySelectorAll("[data-salvo]").forEach((d) => d.addEventListener("click", (e) => { if (e.target.closest("button")) return; Object.keys(seg).forEach((k) => (seg[k] = "")); Object.assign(seg, salvos[Number(d.dataset.salvo)].f); telaSegmentos(el); }));
+    el.querySelectorAll("[data-editar-seg]").forEach((b) => b.addEventListener("click", () => { const i = Number(b.dataset.editarSeg); segEdit = i; segEditNome = salvos[i].nome; Object.keys(seg).forEach((k) => (seg[k] = "")); Object.assign(seg, salvos[i].f); telaSegmentos(el); }));
+    el.querySelectorAll("[data-excluir-seg]").forEach((b) => b.addEventListener("click", () => { const i = Number(b.dataset.excluirSeg); if (!confirm("Excluir o público “" + salvos[i].nome + "”?")) return; const l = salvos.slice(); l.splice(i, 1); if (segEdit === i) segEdit = null; else if (segEdit > i) segEdit--; salvarSegmentos(l); toast("Público excluído."); telaSegmentos(el); }));
+    const nomeSeg = el.querySelector("[data-nome-seg]"); if (nomeSeg) nomeSeg.addEventListener("input", () => { segEditNome = nomeSeg.value; });
+    const canc = el.querySelector("[data-cancelar-edicao]"); if (canc) canc.addEventListener("click", () => { segEdit = null; telaSegmentos(el); });
+    const salvEd = el.querySelector("[data-salvar-edicao]"); if (salvEd) salvEd.addEventListener("click", () => { const l = salvos.slice(); const nome = segEditNome.trim() || l[segEdit].nome; l[segEdit] = Object.assign({}, l[segEdit], { nome, f: Object.assign({}, seg), desc: "editado em " + fmtD(new Date().toISOString()) }); salvarSegmentos(l); segEdit = null; toast("Público “" + nome + "” atualizado."); telaSegmentos(el); });
+    const salvar = el.querySelector("[data-salvar-seg]"); if (salvar) salvar.addEventListener("click", () => { const nome = prompt("Nome do público:"); if (!nome) return; const l = salvos.slice(); l.push({ nome: nome.trim(), desc: "salvo em " + fmtD(new Date().toISOString()), f: Object.assign({}, seg) }); salvarSegmentos(l); toast("Público salvo."); telaSegmentos(el); });
     const csv = el.querySelector("[data-csv-seg]"); if (csv) csv.addEventListener("click", () => exportarClientes(res));
     el.querySelector("[data-criar-camp]").addEventListener("click", () => { campRascunho = { publico: Object.assign({}, seg), nomePublico: "Público com " + res.length + " clientes", mensagem: msgSeg }; telaAtual = "campanhas"; location.hash = "campanhas"; render(); });
   }
@@ -302,7 +480,7 @@
     const cs = BK.cupons(); const hoje = new Date().toISOString().slice(0, 10);
     const situacao = (c) => c.ativo === false ? ["Inativo", "inativo"] : (c.validade && hoje > c.validade) ? ["Vencido", "cancelado"] : (c.limite && BK.usosCupom(c.codigo) >= c.limite) ? ["Esgotado", "cancelado"] : (c.inicio && hoje < c.inicio) ? ["Agendado", "preparo"] : ["Ativo", "ativo"];
     el.innerHTML = topo("Promoções", "Cupons", "Código, desconto, validade, limite de usos e pedido mínimo. O site valida tudo na hora.", '<button class="btn primario" data-novo-cupom>' + icone("plus") + "Novo cupom</button>") +
-      '<div class="cartao">' + (cs.length ? '<div style="overflow:auto"><table><thead><tr><th>Código</th><th>Desconto</th><th>Validade</th><th>Regras</th><th>Usos</th><th>Situação</th><th></th></tr></thead><tbody>' + cs.map((c) => { const [r, cl] = situacao(c); const u = BK.usosCupom(c.codigo); return "<tr><td><b>" + esc(c.codigo) + "</b>" + (c.descricao ? '<div class="mini">' + esc(c.descricao) + "</div>" : "") + "</td><td>" + c.desconto + "%</td><td>" + (c.inicio ? "de " + c.inicio.split("-").reverse().join("/") + " " : "") + (c.validade ? "até " + c.validade.split("-").reverse().join("/") : "sem validade") + '</td><td class="mini">' + [c.minimo ? "mínimo " + moeda(c.minimo) : "", c.umPorCliente ? "1 por cliente" : "", c.limite ? "máx. " + c.limite + " usos" : ""].filter(Boolean).join(" · ") + "</td><td>" + u + (c.limite ? " / " + c.limite : "") + '</td><td><span class="pill ' + cl + '">' + r + '</span></td><td style="white-space:nowrap"><button class="btn pequeno" data-editar-cupom="' + esc(c.codigo) + '">Editar</button> <button class="btn pequeno" data-toggle-cupom="' + esc(c.codigo) + '">' + (c.ativo === false ? "Ativar" : "Desativar") + '</button> <button class="btn pequeno perigo" data-excluir-cupom="' + esc(c.codigo) + '">Excluir</button></td></tr>'; }).join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum cupom.</div>') + "</div>";
+      '<div class="cartao">' + (cs.length ? '<div style="overflow:auto"><table><thead><tr><th>Código</th><th>Desconto</th><th>Validade</th><th>Regras</th><th>Usos</th><th>Situação</th><th></th></tr></thead><tbody>' + cs.map((c) => { const [r, cl] = situacao(c); const u = BK.usosCupom(c.codigo); return "<tr><td><b>" + esc(c.codigo) + "</b>" + (c.rede ? ' <span class="pill preparo">Franqueadora</span>' : "") + (c.descricao ? '<div class="mini">' + esc(c.descricao) + "</div>" : "") + "</td><td>" + c.desconto + "%</td><td>" + (c.inicio ? "de " + c.inicio.split("-").reverse().join("/") + " " : "") + (c.validade ? "até " + c.validade.split("-").reverse().join("/") : "sem validade") + '</td><td class="mini">' + [c.minimo ? "mínimo " + moeda(c.minimo) : "", c.umPorCliente ? "1 por cliente" : "", c.limite ? "máx. " + c.limite + " usos" : ""].filter(Boolean).join(" · ") + "</td><td>" + u + (c.limite ? " / " + c.limite : "") + '</td><td><span class="pill ' + cl + '">' + r + '</span></td><td style="white-space:nowrap">' + (c.rede ? '<span class="mini">definido pela franqueadora</span>' : '<button class="btn pequeno" data-editar-cupom="' + esc(c.codigo) + '">Editar</button> <button class="btn pequeno" data-toggle-cupom="' + esc(c.codigo) + '">' + (c.ativo === false ? "Ativar" : "Desativar") + '</button> <button class="btn pequeno perigo" data-excluir-cupom="' + esc(c.codigo) + '">Excluir</button>') + "</td></tr>"; }).join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum cupom.</div>') + "</div>";
     el.querySelector("[data-novo-cupom]").addEventListener("click", () => editarCupom(null));
     el.querySelectorAll("[data-editar-cupom]").forEach((b) => b.addEventListener("click", () => editarCupom(b.dataset.editarCupom)));
     el.querySelectorAll("[data-toggle-cupom]").forEach((b) => b.addEventListener("click", () => { const c = BK.cupons().find((x) => x.codigo === b.dataset.toggleCupom); c.ativo = c.ativo === false; BK.salvarCupom(c); }));
@@ -325,8 +503,8 @@
   function telaModelos(el) {
     const ms = BK.modelos(); const cats = [...new Set(ms.map((m) => m.categoria))];
     el.innerHTML = topo("Campanhas", "Modelos de mensagem", "Textos prontos pra disparo. Modelos da franqueadora chegam pra todas as unidades; a unidade pode criar os seus.", '<button class="btn primario" data-novo-modelo>' + icone("plus") + "Novo modelo</button>") +
-      '<div class="aviso" style="margin-bottom:1rem">Variáveis: {nome} {loja} {cupom} {site} {produto}. Quando o painel da franqueadora existir, os modelos marcados como "franqueadora" serão publicados de lá e aparecerão aqui como somente leitura.</div>' +
-      cats.map((cat) => '<div class="cartao" style="margin-bottom:1rem"><p class="eyebrow" style="margin-bottom:.5rem">' + esc(cat) + '</p>' + ms.filter((m) => m.categoria === cat).map((m) => '<div style="padding:.75rem 0;border-bottom:1px solid var(--line)"><div class="linha" style="justify-content:space-between;align-items:center"><b>' + esc(m.nome) + ' <span class="pill ' + (m.origem === "franqueadora" ? "preparo" : "ativo") + '">' + (m.origem === "franqueadora" ? "Franqueadora" : "Unidade") + '</span></b><span><button class="btn pequeno" data-usar-modelo="' + m.id + '">Usar em campanha</button> <button class="btn pequeno" data-editar-modelo="' + m.id + '">Editar</button> <button class="btn pequeno perigo" data-excluir-modelo="' + m.id + '">Excluir</button></span></div><p style="margin:.4rem 0 0;color:var(--body);font-size:.9rem">' + esc(m.texto) + "</p></div>").join("") + "</div>").join("");
+      '<div class="aviso" style="margin-bottom:1rem">Variáveis: {nome} {loja} {cupom} {site} {produto}. Os modelos marcados como "Franqueadora" são publicados pelo painel da franqueadora e não podem ser editados aqui; dá pra usar em campanha.</div>' +
+      cats.map((cat) => '<div class="cartao" style="margin-bottom:1rem"><p class="eyebrow" style="margin-bottom:.5rem">' + esc(cat) + '</p>' + ms.filter((m) => m.categoria === cat).map((m) => '<div style="padding:.75rem 0;border-bottom:1px solid var(--line)"><div class="linha" style="justify-content:space-between;align-items:center"><b>' + esc(m.nome) + ' <span class="pill ' + (m.origem === "franqueadora" ? "preparo" : "ativo") + '">' + (m.origem === "franqueadora" ? "Franqueadora" : "Unidade") + '</span></b><span><button class="btn pequeno" data-usar-modelo="' + m.id + '">Usar em campanha</button>' + (m.rede ? "" : ' <button class="btn pequeno" data-editar-modelo="' + m.id + '">Editar</button> <button class="btn pequeno perigo" data-excluir-modelo="' + m.id + '">Excluir</button>') + '</span></div><p style="margin:.4rem 0 0;color:var(--body);font-size:.9rem">' + esc(m.texto) + "</p></div>").join("") + "</div>").join("");
     el.querySelector("[data-novo-modelo]").addEventListener("click", () => editarModelo(null));
     el.querySelectorAll("[data-editar-modelo]").forEach((b) => b.addEventListener("click", () => editarModelo(b.dataset.editarModelo)));
     el.querySelectorAll("[data-excluir-modelo]").forEach((b) => b.addEventListener("click", () => { if (confirm("Excluir este modelo?")) BK.excluirModelo(b.dataset.excluirModelo); }));
@@ -334,12 +512,14 @@
   }
   function editarModelo(id) {
     const m = id ? Object.assign({}, BK.modelos().find((x) => x.id === id)) : { id: "", nome: "", categoria: "Reativação", origem: "unidade", texto: "Oi, {nome}! " };
-    const g = gaveta('<p class="eyebrow">Modelo</p><h2>' + (id ? "Editar modelo" : "Novo modelo") + '</h2><form id="fmod" style="display:grid;gap:.75rem;margin-top:1rem"><label class="campo">Nome<input name="nome" required value="' + esc(m.nome) + '"/></label><div class="grade2"><label class="campo">Categoria<select name="categoria">' + ["Reativação", "Fidelidade", "Lançamento", "Datas", "Recorrência", "Promoção", "Boas-vindas", "Pós-venda", "Outra"].map((c) => '<option' + (m.categoria === c ? " selected" : "") + ">" + c + "</option>").join("") + '</select></label><label class="campo">Origem<select name="origem"><option value="unidade"' + (m.origem === "unidade" ? " selected" : "") + '>Unidade</option><option value="franqueadora"' + (m.origem === "franqueadora" ? " selected" : "") + '>Franqueadora</option></select></label></div><label class="campo">Texto (use {nome} {loja} {cupom} {site} {produto})<textarea name="texto" required style="min-height:8rem">' + esc(m.texto) + '</textarea></label><div class="linha" style="justify-content:flex-end"><button type="button" class="btn" data-fechar>Cancelar</button><button class="btn primario">Salvar</button></div></form>');
-    g.querySelector("#fmod").addEventListener("submit", (e) => { e.preventDefault(); const d = new FormData(e.target); BK.salvarModelo({ id: m.id || "m-" + Date.now().toString(36), nome: d.get("nome").trim(), categoria: d.get("categoria").trim() || "Geral", origem: d.get("origem"), texto: d.get("texto") }); fecharGaveta(); toast("Modelo salvo."); render(); });
+    const g = gaveta('<p class="eyebrow">Modelo</p><h2>' + (id ? "Editar modelo" : "Novo modelo") + '</h2><form id="fmod" style="display:grid;gap:.75rem;margin-top:1rem"><label class="campo">Nome<input name="nome" required value="' + esc(m.nome) + '"/></label><div class="grade2"><label class="campo">Categoria<select name="categoria">' + ["Reativação", "Fidelidade", "Lançamento", "Datas", "Recorrência", "Promoção", "Boas-vindas", "Pós-venda", "Outra"].map((c) => '<option' + (m.categoria === c ? " selected" : "") + ">" + c + "</option>").join("") + '</select></label><label class="campo">Origem<input value="Unidade" readonly/></label></div><label class="campo">Texto (use {nome} {loja} {cupom} {site} {produto})<textarea name="texto" required style="min-height:8rem">' + esc(m.texto) + '</textarea></label><div class="linha" style="justify-content:flex-end"><button type="button" class="btn" data-fechar>Cancelar</button><button class="btn primario">Salvar</button></div></form>');
+    g.querySelector("#fmod").addEventListener("submit", (e) => { e.preventDefault(); const d = new FormData(e.target); BK.salvarModelo({ id: m.id || "m-" + Date.now().toString(36), nome: d.get("nome").trim(), categoria: d.get("categoria").trim() || "Geral", origem: "unidade", texto: d.get("texto") }); fecharGaveta(); toast("Modelo salvo."); render(); });
   }
 
   // ---------- CAMPANHAS ----------
   let campRascunho = null;
+  // Regra da rede: o mesmo cliente não recebe mais de 1 disparo em 7 dias. Devolve telefone → data do último disparo recente.
+  const disparosRecentes = () => { const m = {}; const lim = new Date(Date.now() - 7 * 864e5).toISOString(); BK.campanhas().filter((c) => c.enviada && c.enviadaEm > lim).forEach((c) => (c.destinatarios || []).forEach((d) => { const t = tel(d.telefone); if (!m[t] || m[t] < c.enviadaEm) m[t] = c.enviadaEm; })); return m; };
   function telaCampanhas(el) {
     const todas = BK.campanhas().slice().reverse(); const salvos = cfg().segmentosSalvos || []; const publicos = PRONTAS.concat(salvos);
     el.innerHTML = topo("Campanhas", "Campanhas de WhatsApp", "Escolha um público, escreva a mensagem e dispare. Fica registrado quem recebeu o quê.", '<button class="btn primario" data-nova-camp>' + icone("plus") + "Nova campanha</button>") +
@@ -360,8 +540,9 @@
       '<label class="campo">Mensagem (use {nome} {cupom} {loja} {site})<textarea name="mensagem" required style="min-height:7rem">' + esc(c.mensagem) + "</textarea></label>" +
       '<div class="caixa-prev cartao" id="prev-camp" style="background:#DDF1CF;border:0;font-size:.9rem"></div>' +
       '<div class="linha" style="justify-content:flex-end"><button type="button" class="btn" data-fechar>Cancelar</button><button type="button" class="btn" data-salvar-rasc>Salvar rascunho</button><button class="btn primario" data-disparar>' + icone("message-circle") + "Disparar agora</button></div></form>");
-    const publicoAtual = () => { const v = g.querySelector('[name="publico"]').value; const cs = BK.clientes(); if (v === "todos") return { nome: "Todos os clientes", lista: cs }; if (v === "atual") { const guarda = Object.assign({}, seg); Object.assign(seg, c.publico); const r = aplicarSeg(cs); Object.assign(seg, guarda); return { nome: c.nomePublico, lista: r }; } const p = publicos[Number(v)]; const guarda = Object.assign({}, seg); Object.keys(seg).forEach((k) => (seg[k] = "")); Object.assign(seg, p.f); const r = aplicarSeg(cs); Object.assign(seg, guarda); return { nome: p.nome, lista: r }; };
-    const atualizar = () => { const pa = publicoAtual(); g.querySelector("#cont-publico").textContent = pa.lista.length + " cliente" + (pa.lista.length === 1 ? "" : "s") + " vão receber."; const ex = pa.lista[0]; const cup = g.querySelector('[name="cupom"]').value; g.querySelector("#prev-camp").innerHTML = '<span class="mini" style="color:#2F7D45;font-weight:800">Prévia' + (ex ? " pra " + esc(ex.nome.split(" ")[0]) : "") + "</span><br/>" + esc(g.querySelector('[name="mensagem"]').value.replace(/\{nome\}/g, ex ? ex.nome.split(" ")[0] : "Cliente").replace(/\{cupom\}/g, cup || "").replace(/\{loja\}/g, cfg().nomeCompleto).replace(/\{site\}/g, cfg().site || "")); g.querySelector("[data-disparar]").disabled = !pa.lista.length; };
+    const publicoBruto = () => { const v = g.querySelector('[name="publico"]').value; const cs = BK.clientes(); if (v === "todos") return { nome: "Todos os clientes", lista: cs }; if (v === "atual") { const guarda = Object.assign({}, seg); Object.assign(seg, c.publico); const r = aplicarSeg(cs); Object.assign(seg, guarda); return { nome: c.nomePublico, lista: r }; } const p = publicos[Number(v)]; const guarda = Object.assign({}, seg); Object.keys(seg).forEach((k) => (seg[k] = "")); Object.assign(seg, p.f); const r = aplicarSeg(cs); Object.assign(seg, guarda); return { nome: p.nome, lista: r }; };
+    const publicoAtual = () => { const pa = publicoBruto(); const rec = disparosRecentes(); return { nome: pa.nome, lista: pa.lista.filter((x) => !rec[tel(x.telefone)]), bloqueados: pa.lista.filter((x) => rec[tel(x.telefone)]).length }; };
+    const atualizar = () => { const pa = publicoAtual(); g.querySelector("#cont-publico").textContent = pa.lista.length + " cliente" + (pa.lista.length === 1 ? "" : "s") + " vão receber." + (pa.bloqueados ? " " + pa.bloqueados + " ficaram de fora porque já receberam um disparo nos últimos 7 dias (regra da rede)." : ""); const ex = pa.lista[0]; const cup = g.querySelector('[name="cupom"]').value; g.querySelector("#prev-camp").innerHTML = '<span class="mini" style="color:#2F7D45;font-weight:800">Prévia' + (ex ? " pra " + esc(ex.nome.split(" ")[0]) : "") + "</span><br/>" + esc(g.querySelector('[name="mensagem"]').value.replace(/\{nome\}/g, ex ? ex.nome.split(" ")[0] : "Cliente").replace(/\{cupom\}/g, cup || "").replace(/\{loja\}/g, cfg().nomeCompleto).replace(/\{site\}/g, cfg().site || "")); g.querySelector("[data-disparar]").disabled = !pa.lista.length; };
     g.querySelector('[name="modelo"]').addEventListener("change", (e) => { const m = BK.modelos().find((x) => x.id === e.target.value); if (m) { g.querySelector('[name="mensagem"]').value = m.texto; if (!g.querySelector('[name="nome"]').value) g.querySelector('[name="nome"]').value = m.nome; atualizar(); } });
     g.querySelectorAll("select,textarea").forEach((i) => i.addEventListener("input", atualizar)); atualizar();
     const montar = (enviar) => { const d = new FormData(g.querySelector("#fcamp")); const pa = publicoAtual(); const v = d.get("publico"); return { id: c.id || "camp-" + Date.now().toString(36), nome: d.get("nome").trim() || "Campanha", publicoIdx: v === "atual" ? "" : v, nomePublico: pa.nome, publico: v === "atual" ? c.publico : (v === "todos" ? {} : publicos[Number(v)].f), cupom: d.get("cupom"), mensagem: d.get("mensagem").replace(/\{cupom\}/g, d.get("cupom") || "").replace(/\{loja\}/g, cfg().nomeCompleto).replace(/\{site\}/g, cfg().site || ""), modeloId: d.get("modelo") || "", criadaEm: c.criadaEm || new Date().toISOString(), enviada: enviar, enviadaEm: enviar ? new Date().toISOString() : null, destinatarios: enviar ? pa.lista.map((x) => ({ telefone: x.telefone, nome: x.nome })) : pa.lista.map((x) => ({ telefone: x.telefone, nome: x.nome })) }; };
@@ -387,33 +568,46 @@
   }
 
   // ---------- CONFIGURAÇÕES ----------
+  // Dados da loja são definidos pelo Franchising (aba Unidades) e aparecem aqui só pra consulta.
+  // A unidade cuida da entrega (taxa por bairro e texto) e da senha do painel.
+  let taxasEd = null;
   function telaConfig(el) {
-    const c = cfg(); const m = modelos();
-    el.innerHTML = topo("Unidade", "Configurações", "Dados da loja, taxas por bairro, cupons e mensagens automáticas.") +
-      '<form id="fc" style="display:grid;gap:1rem"><div class="cartao"><p class="eyebrow" style="margin-bottom:.75rem">Loja</p><div class="grade2">' +
-      '<label class="campo">Nome da unidade<input name="nome" value="' + esc(c.nome) + '"/></label><label class="campo">Nome completo<input name="nomeCompleto" value="' + esc(c.nomeCompleto) + '"/></label>' +
-      '<label class="campo">WhatsApp (só números, com 55)<input name="whatsapp" value="' + esc(c.whatsapp) + '"/></label><label class="campo">WhatsApp formatado<input name="whatsappFormatado" value="' + esc(c.whatsappFormatado) + '"/></label>' +
-      '<label class="campo">Endereço<input name="endereco" value="' + esc(c.endereco) + '"/></label><label class="campo">Bairro / cidade<input name="bairroCidade" value="' + esc(c.bairro + " | " + c.cidade) + '" placeholder="Bairro | Cidade, UF"/></label>' +
-      '<label class="campo">Horário<input name="horario" value="' + esc(c.horario) + '"/></label><label class="campo">Senha do painel<input name="senha" type="password" value="' + esc(c.admin && c.admin.senha || "breadking") + '"/></label></div>' +
-      '<label class="campo" style="margin-top:.75rem">Texto da entrega (página do pedido)<textarea name="textoEntrega">' + esc(c.textoEntrega) + "</textarea></label></div>" +
-      '<div class="cartao"><p class="eyebrow" style="margin-bottom:.75rem">Taxa de entrega por bairro</p><label class="campo">Um por linha: <code>Bairro; valor</code><textarea name="taxas" style="min-height:10rem">' + esc(c.taxasEntrega.map((t) => t.bairro + "; " + t.taxa.toFixed(2)).join("\n")) + "</textarea></label></div>" +
-      '<div class="cartao"><p class="eyebrow" style="margin-bottom:.5rem">Cupons</p><p class="mini">Os cupons agora têm aba própria, com validade e limites. <a href="#cupons" data-tela-link="cupons" style="color:var(--red);font-weight:800">Abrir Cupons</a></p></div>' +
-      '<div class="cartao"><p class="eyebrow" style="margin-bottom:.75rem">Mensagens automáticas de status</p><p class="mini" style="margin-bottom:.75rem">Variáveis: {nome} {numero} {loja} {endereco} {total}. O envio é automático ao mudar o status. Nesta simulação a mensagem é registrada no pedido e aparece pro cliente na página de acompanhamento; em produção sai pela API de WhatsApp.</p>' +
-      '<label class="campo" style="flex-direction:row;align-items:center;gap:.5rem;margin-bottom:.75rem"><input type="checkbox" name="mensagensAuto" style="height:auto"' + (c.mensagensAuto !== false ? " checked" : "") + "/> Enviar automaticamente ao marcar “Saiu pra entrega” / “Pronto pra retirada”</label>" +
-      '<label class="campo" style="flex-direction:row;align-items:center;gap:.5rem;margin-bottom:.75rem"><input type="checkbox" name="mensagemConcluido" style="height:auto"' + (c.mensagemConcluido ? " checked" : "") + "/> Também enviar ao concluir</label>" +
-      '<div class="grade2"><label class="campo">Saiu pra entrega<textarea name="m_saiu">' + esc(m.saiu) + '</textarea></label><label class="campo">Pronto pra retirada<textarea name="m_pronto">' + esc(m.pronto) + '</textarea></label><label class="campo">Concluído<textarea name="m_concluido">' + esc(m.concluido) + "</textarea></label></div></div>" +
+    const c = cfg(); const rede = BK.dadosRede();
+    if (!taxasEd) taxasEd = (c.taxasEntrega || []).map((t) => ({ bairro: t.bairro, taxa: t.taxa }));
+    const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    const info = (rot, v) => '<div class="info-fixa"><span class="mini">' + rot + "</span><b>" + (v ? esc(v) : "—") + "</b></div>";
+    const horarios = DIAS.map((d, i) => { const h = (c.horarios || {})[i] || []; return d.slice(0, 3) + " " + (h.length ? h.join(", ").replace(/-/g, "–") : "fechado"); }).join(" · ");
+    const linhaTaxa = (t, i) => '<tr><td><input data-tx-bairro="' + i + '" value="' + esc(t.bairro) + '" placeholder="Nome do bairro"/></td><td><div class="campo-moeda"><span>R$</span><input data-tx-valor="' + i + '" type="number" min="0" step="0.50" value="' + (t.taxa === "" ? "" : Number(t.taxa).toFixed(2)) + '"/></div></td><td style="width:1%"><button type="button" class="btn pequeno perigo" data-tx-del="' + i + '" title="Remover bairro">' + icone("x") + "</button></td></tr>";
+    el.innerHTML = topo("Unidade", "Configurações", "") +
+      '<div class="cartao" style="margin-bottom:1rem"><div class="linha" style="justify-content:space-between;align-items:center;margin-bottom:.75rem"><p class="eyebrow">Dados da unidade</p><span class="pill preparo">Definido pelo Franchising</span></div>' +
+      '<div class="grade-info">' + info("Nome da unidade", c.nome) + info("Nome completo", c.nomeCompleto) + info("WhatsApp", c.whatsappFormatado) + info("E-mail", c.email) +
+      info("Endereço", c.endereco) + info("Bairro / cidade", [c.bairro, c.cidade].filter(Boolean).join(" · ")) + info("Horário (texto do site)", c.horario) + info("Instagram", c.instagramUsuario) +
+      info("Razão social", c.razaoSocial) + info("CNPJ", c.cnpj) + info("Site", c.site) + "</div>" +
+      '<div class="info-fixa" style="margin-top:.75rem"><span class="mini">Horários de funcionamento</span><b style="font-weight:500">' + esc(horarios) + "</b></div>" +
+      '<p class="mini" style="margin-top:.75rem">' + (rede ? "Esses dados são definidos pelo Franchising. Para mudar algum, fale com o Franchising." : "Esses dados vêm do cadastro da unidade e passam a ser definidos pelo Franchising, na aba Unidades do painel Franchising.") + "</p></div>" +
+      '<form id="fc" style="display:grid;gap:1rem">' +
+      '<div class="cartao"><div class="linha" style="justify-content:space-between;align-items:center;margin-bottom:.75rem"><p class="eyebrow">Taxa de entrega por bairro</p><span class="mini">' + taxasEd.length + " bairro" + (taxasEd.length === 1 ? "" : "s") + "</span></div>" +
+      (taxasEd.length ? '<div style="overflow:auto"><table class="tabela-taxas"><thead><tr><th>Bairro</th><th style="width:180px">Valor da entrega</th><th></th></tr></thead><tbody>' + taxasEd.map(linhaTaxa).join("") + "</tbody></table></div>" : '<div class="vazio">Nenhum bairro. Adicione o primeiro.</div>') +
+      '<div class="linha" style="margin-top:.75rem;align-items:center"><button type="button" class="btn" data-tx-add>' + icone("plus") + 'Adicionar bairro</button><span class="mini" id="erro-tx" style="color:var(--red)"></span></div>' +
+      '<label class="campo" style="margin-top:1rem">Texto da entrega (aparece na página do pedido)<textarea name="textoEntrega">' + esc(c.textoEntrega) + "</textarea></label></div>" +
+      '<div class="cartao"><p class="eyebrow" style="margin-bottom:.75rem">Acesso ao painel</p><div class="grade2"><label class="campo">Senha do painel<input name="senha" type="password" value="' + esc(c.admin && c.admin.senha || "breadking") + '"/></label></div></div>' +
       '<div class="linha" style="justify-content:flex-end"><button class="btn primario">Salvar configurações</button></div></form>' +
       '<div class="cartao" style="margin-top:1.5rem"><p class="eyebrow" style="margin-bottom:.5rem">Simulação</p><p class="mini" style="margin-bottom:.75rem">Ferramentas pra testar o painel sem pedidos reais.</p><div class="linha"><button class="btn dourado" data-exemplos>Gerar 40 pedidos de exemplo</button><button class="btn perigo" data-apagar-pedidos>Apagar todos os pedidos</button><button class="btn perigo" data-zerar>Zerar tudo (produtos, pedidos, config)</button></div></div>';
+    // as linhas de taxa ficam em memória até clicar em Salvar
+    el.querySelectorAll("[data-tx-bairro]").forEach((i) => i.addEventListener("input", () => { taxasEd[Number(i.dataset.txBairro)].bairro = i.value; }));
+    el.querySelectorAll("[data-tx-valor]").forEach((i) => i.addEventListener("input", () => { taxasEd[Number(i.dataset.txValor)].taxa = i.value === "" ? "" : Number(i.value); }));
+    el.querySelectorAll("[data-tx-del]").forEach((b) => b.addEventListener("click", () => { taxasEd.splice(Number(b.dataset.txDel), 1); telaConfig(el); }));
+    el.querySelector("[data-tx-add]").addEventListener("click", () => { taxasEd.push({ bairro: "", taxa: "" }); telaConfig(el); const ult = el.querySelectorAll("[data-tx-bairro]"); if (ult.length) ult[ult.length - 1].focus(); });
     el.querySelector("#fc").addEventListener("submit", (e) => {
-      e.preventDefault(); const d = new FormData(e.target); const bc = (d.get("bairroCidade") || "").split("|");
-      const novo = { nome: d.get("nome").trim(), nomeCompleto: d.get("nomeCompleto").trim(), whatsapp: d.get("whatsapp").replace(/\D/g, ""), whatsappFormatado: d.get("whatsappFormatado").trim(), endereco: d.get("endereco").trim(), bairro: (bc[0] || "").trim(), cidade: (bc[1] || "").trim(), horario: d.get("horario").trim(), textoEntrega: d.get("textoEntrega").trim(), admin: { senha: d.get("senha") || "breadking" },
-        taxasEntrega: d.get("taxas").split("\n").map((l) => l.split(";")).filter((x) => x[0] && x[0].trim()).map((x) => ({ bairro: x[0].trim(), taxa: Number(String(x[1] || "0").replace(",", ".")) || 0 })),
-        cupons: c.cupons,
-        mensagensAuto: !!d.get("mensagensAuto"), mensagemConcluido: !!d.get("mensagemConcluido"), modelosMensagem: { saiu: d.get("m_saiu"), pronto: d.get("m_pronto"), concluido: d.get("m_concluido") }, segmentosSalvos: c.segmentosSalvos || [] };
-      BK.salvarConfig(novo); Object.assign(U, novo); toast("Configurações salvas."); render();
+      e.preventDefault(); const d = new FormData(e.target); const erro = el.querySelector("#erro-tx");
+      const taxas = taxasEd.filter((t) => String(t.bairro).trim() || t.taxa !== "").map((t) => ({ bairro: String(t.bairro).trim(), taxa: Number(t.taxa) || 0 }));
+      if (taxas.some((t) => !t.bairro)) { erro.textContent = "Tem linha com valor e sem nome de bairro."; return; }
+      const nomes = taxas.map((t) => t.bairro.toLowerCase()); const dup = nomes.find((n, i) => nomes.indexOf(n) !== i);
+      if (dup) { erro.textContent = "O bairro “" + taxas.find((t) => t.bairro.toLowerCase() === dup).bairro + "” aparece duas vezes."; return; }
+      const novo = Object.assign(BK.ler("bk_db_config", {}), { textoEntrega: d.get("textoEntrega").trim(), admin: { senha: d.get("senha") || "breadking" }, taxasEntrega: taxas });
+      BK.salvarConfig(novo); Object.assign(U, { textoEntrega: novo.textoEntrega, taxasEntrega: taxas, admin: novo.admin }); taxasEd = null; toast("Configurações salvas."); render();
     });
     el.querySelector("[data-exemplos]").addEventListener("click", () => { gerarExemplos(); toast("40 pedidos de exemplo criados (últimos 6 meses)."); });
-    el.querySelector("[data-tela-link]").addEventListener("click", (e) => { e.preventDefault(); telaAtual = "cupons"; render(); });
     el.querySelector("[data-apagar-pedidos]").addEventListener("click", () => { if (confirm("Apagar todos os pedidos e clientes?")) { localStorage.removeItem("bk_db_pedidos"); toast("Pedidos apagados."); render(); } });
     el.querySelector("[data-zerar]").addEventListener("click", () => { if (confirm("Zerar tudo e voltar ao estado inicial do clone?")) { BK.limparTudo(); location.reload(); } });
   }

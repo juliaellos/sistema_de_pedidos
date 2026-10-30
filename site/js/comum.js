@@ -70,7 +70,7 @@
     const pag = location.pathname.split("/").pop() || "index.html";
     el.innerHTML = '<div class="container mx-auto px-4 barra">' +
       '<a class="marca" href="index.html"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></a>' +
-      '<nav><a href="index.html" class="' + (pag === "index.html" ? "ativa" : "") + '">Cardápio</a><a href="acompanhamento.html" class="' + (pag === "acompanhamento.html" ? "ativa" : "") + '">Meus pedidos</a></nav>' +
+      '<nav><a href="index.html" class="' + (pag === "index.html" ? "ativa" : "") + '">Loja</a><a href="acompanhamento.html" class="' + (pag === "acompanhamento.html" ? "ativa" : "") + '">Meus pedidos</a></nav>' +
       '<div class="direita"><span id="area-conta"></span>' +
       '<a class="link-carrinho" href="pedido.html" id="link-carrinho">' + icone("shopping-bag") + '<span><span class="v" data-cv>' + moeda(Carrinho.subtotal()) + '</span><span class="n" data-cn>' + Carrinho.totalItens() + (Carrinho.totalItens() === 1 ? " item" : " itens") + "</span></span></a></div></div>";
     if (window.Conta) Conta.renderArea();
@@ -119,14 +119,14 @@
       '<div class="loja-cab"><div class="loja-logo"><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/></div><div><h1 class="loja-nome">' + esc(U.nomeCompleto.replace("Bread King ", "Bread King - ")) + "</h1>" +
       '<div class="loja-meta"><span class="' + (st.aberto ? "aberto" : "fechado") + '">' + (st.aberto ? "Aberto · fecha às " + st.fecha : "Fechado" + (st.abre ? " · abre às " + st.abre : "")) + "</span><span>·</span><span>Entrega e retirada</span></div></div>" +
       '<div class="loja-acoes"><button class="btn-vermais" data-ver-mais="sobre">Ver mais</button></div></div>' +
-      '<div class="loja-busca">' + icone("search") + '<input id="busca" type="search" placeholder="Buscar no cardápio"/></div></div><div class="faixa-cinza"></div>';
+      '<div class="loja-busca">' + icone("search") + '<input id="busca" type="search" placeholder="Buscar no cardápio"/></div></div>';
   };
 
   // ---------- rodapé ----------
   window.renderRodape = function (el) {
     el.className = "rodape-site";
     el.innerHTML = '<div class="container mx-auto px-4"><div class="cols"><div><img src="imagens/marca/logo-bread-king.png" alt="Bread King"/><p>A primeira padaria de supercongelados do Brasil.</p></div>' +
-      '<div><h5>Navegação</h5><a href="index.html">Cardápio</a><a href="acompanhamento.html">Meus pedidos</a><a href="#" data-ver-mais="horario">Horário e informações</a></div>' +
+      '<div><h5>Navegação</h5><a href="index.html">Loja</a><a href="acompanhamento.html">Meus pedidos</a><a href="#" data-ver-mais="horario">Horário e informações</a></div>' +
       '<div><h5>Contato</h5><a href="' + linkWhats() + '" target="_blank" rel="noopener">WhatsApp ' + esc(U.whatsappFormatado) + '</a><span style="display:block;padding:.2rem 0">' + esc(U.endereco) + "<br/>" + esc(U.bairro + ", " + U.cidade) + "</span></div></div>" +
       '<div class="base"><span>© ' + new Date().getFullYear() + " " + esc(U.nomeCompleto) + ". Todos os direitos reservados.</span><span>Pagamento no site · Entrega e retirada</span></div></div>";
   };

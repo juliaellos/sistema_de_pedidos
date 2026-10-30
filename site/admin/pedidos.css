@@ -1,0 +1,104 @@
+/* Quadro de acompanhamento de pedidos (base: admin-v2.css ou admin.css) */
+
+/* busca e filtros no topo */
+.barra-ped{display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem}
+.barra-ped .campo{flex:1;min-width:150px}
+.barra-ped .busca-ped{flex:2.2;min-width:240px}
+.com-icone{position:relative;display:block}
+.com-icone svg{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--muted)}
+.com-icone input{width:100%;padding-left:2.3rem!important}
+
+/* pedidos novos em destaque */
+@keyframes pulso{0%,100%{box-shadow:0 0 0 0 rgba(184,23,46,.35)}50%{box-shadow:0 0 0 6px rgba(184,23,46,0)}}
+.novos{background:#fff5f6;border:1px solid #f1c3ca;border-radius:6px;padding:1rem;margin-bottom:1rem}
+.novos-cab{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;color:var(--red);margin-bottom:.75rem}
+.novos-cab svg{width:18px;height:18px}
+.novos-cab b{font-weight:600}
+.novos-cab .mini{color:var(--muted)}
+.novos-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.75rem}
+.novo-card{display:flex;flex-direction:column;align-items:flex-start;gap:.15rem;text-align:left;background:#fff;border:2px solid var(--red);border-radius:6px;padding:.75rem .9rem;cursor:pointer;animation:pulso 1.8s infinite;font:inherit;color:var(--dark);position:relative}
+.novo-card.sel{background:var(--red);color:#fff;animation:none}
+.novo-card.sel .mini,.novo-card.sel .novo-tempo{color:#ffe3e7}
+.novo-num{font-size:1.25rem;font-weight:600}
+.novo-nome{font-weight:500}
+.novo-tempo{position:absolute;top:.6rem;right:.75rem;font-size:.75rem;color:var(--red);font-weight:500}
+
+/* quadro: Em preparo | Pronto / Em rota / Finalizados | pedido aberto */
+.quadro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.45fr);gap:1rem;margin-bottom:1.5rem;align-items:stretch}
+@media(max-width:1100px){.quadro{grid-template-columns:1fr 1fr}.detalhe-ped{grid-column:1/-1}}
+@media(max-width:700px){.quadro{grid-template-columns:1fr}}
+.coluna{background:#f6f6f6;border-radius:8px;padding:.75rem;min-height:640px}
+.coluna-cab,.grupo-cab{display:flex;justify-content:space-between;align-items:center;font-weight:500;font-size:.92rem;padding:.25rem .25rem .6rem}
+.grupo-cab{width:100%;background:none;border:0;cursor:pointer;color:var(--dark);font:inherit;font-weight:500}
+.grupo-cab svg{width:16px;height:16px;color:var(--muted)}
+.grupo-ped+.grupo-ped{margin-top:.6rem;border-top:1px solid #e6e6e6;padding-top:.6rem}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:1.4rem;height:1.4rem;padding:0 .4rem;border-radius:999px;background:var(--dark);color:#fff;font-size:.72rem;font-weight:600;margin-left:.3rem}
+.col-vazia{display:flex;flex-direction:column;align-items:center;gap:.5rem;text-align:center;color:var(--muted);font-size:.85rem;padding:1.5rem .75rem}
+.col-vazia svg{width:26px;height:26px;opacity:.6}
+
+/* cards de pedido */
+.pcard{display:flex;flex-direction:column;align-items:center;gap:.2rem;width:100%;background:#fff;border:2px solid transparent;border-radius:8px;padding:.7rem .8rem .8rem;margin-bottom:.6rem;cursor:pointer;font:inherit;color:var(--dark);box-shadow:0 1px 2px rgba(0,0,0,.06);transition:border-color .15s}
+.pcard:hover{border-color:var(--line2,#dcdcdc)}
+.pcard.sel{border-color:var(--red)}
+.pcard-top{display:flex;justify-content:space-between;width:100%;font-size:.72rem;color:var(--muted)}
+.pcard-top span{display:inline-flex;align-items:center;gap:.3rem}
+.pcard-top svg{width:13px;height:13px}
+.pcard-num{font-size:1.45rem;font-weight:600;letter-spacing:.01em;margin-top:.15rem}
+.pcard-nome{display:inline-flex;align-items:center;gap:.35rem;font-size:.9rem}
+.estrela{display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:999px;background:var(--dark);color:#F5C542;font-size:.7rem}
+.pcard-rod{margin-top:.35rem;width:100%;text-align:center;background:#f2f2f2;border-radius:999px;padding:.3rem .5rem;font-size:.78rem;color:var(--dark)}
+.pcard-rod.ok{background:none;color:var(--ok)}
+.atraso{color:var(--red);font-weight:600}
+
+/* pedido aberto */
+.detalhe-ped{background:#fff;border:1px solid var(--line);border-radius:8px;padding:1.1rem;min-height:640px}
+.detalhe-vazio{height:100%;min-height:380px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;text-align:center;color:var(--muted)}
+.detalhe-vazio svg{width:34px;height:34px;opacity:.5}
+.detalhe-vazio b{color:var(--dark);font-weight:500}
+.det-cab{display:flex;gap:.75rem;align-items:flex-start}
+.det-cab h2{font-size:1.15rem;font-weight:500;line-height:1.25}
+.det-num{border:1px solid var(--line2,#dcdcdc);border-radius:6px;padding:.3rem .55rem;font-weight:600;font-size:1rem;white-space:nowrap}
+.super{display:inline-flex;align-items:center;gap:.2rem;background:var(--dark);color:#F5C542;border-radius:999px;padding:.1rem .55rem;font-size:.7rem;font-weight:600;vertical-align:middle}
+.det-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.75rem 0}
+.det-chip{display:inline-flex;align-items:center;gap:.35rem;background:#f4f4f4;border-radius:6px;padding:.35rem .6rem;font-size:.8rem;color:var(--dark)}
+.det-chip svg{width:14px;height:14px;color:var(--muted)}
+a.det-chip:hover{background:#ececec}
+.det-bloco{border:1px solid var(--line);border-radius:6px;padding:.8rem .9rem;margin-bottom:.75rem}
+.det-status{margin:0 0 .6rem;font-weight:600;color:var(--ok)}
+.det-status.novo{color:var(--red)}.det-status.cancelado{color:#777}.det-status.saiu,.det-status.pronto{color:#2b4f8a}.det-status.concluido{color:var(--ok)}
+.det-status .mini{font-weight:400}
+.det-end{display:flex;gap:.6rem;align-items:flex-start;font-size:.88rem}
+.det-end>svg{width:17px;height:17px;flex:0 0 auto;margin-top:.1rem;color:var(--muted)}
+.det-end>div{flex:1}
+.det-tag{display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;background:#f4f4f4;border-radius:4px;padding:.2rem .45rem;white-space:nowrap}
+.det-tag svg{width:12px;height:12px}
+.det-itens{font-size:.88rem}
+.det-itens td{padding:.35rem .25rem;border-bottom:1px solid #f1f1f1}
+.det-itens td.q{width:2.2rem;font-weight:600;color:var(--red)}
+.det-itens td.n{text-align:right;white-space:nowrap}
+.det-itens tr.sub td{color:var(--muted);border:0;padding:.15rem .25rem}
+.det-itens tr.tot td{font-weight:600;border:0;border-top:1px solid var(--line2,#dcdcdc);padding-top:.45rem}
+.det-hist{font-size:.85rem;margin-bottom:.75rem}
+.det-hist summary{cursor:pointer;color:var(--muted);padding:.25rem 0}
+.det-hist .mini{padding:.2rem 0}
+.det-rodape{display:flex;flex-direction:column;gap:.75rem;border-top:1px solid var(--line);padding-top:.85rem}
+.det-rodape>.btn{align-self:flex-start}
+.acoes-ped{display:flex;gap:.6rem;justify-content:flex-end;flex-wrap:wrap}
+.btn.grande{height:2.9rem;padding:0 1.3rem;font-size:.92rem}
+.btn.aceitar{background:#1f9d55;border-color:#1f9d55;color:#fff}
+.btn.aceitar:hover{background:#178246;border-color:#178246;color:#fff}
+.btn.grande.perigo{border-color:#e7b2ba}
+.recusa{display:grid;gap:.6rem;background:#fff5f6;border:1px solid #f1c3ca;border-radius:6px;padding:.85rem}
+
+/* tabela */
+tr.linha-sel{background:#fff5f6}
+.pill.novo{background:var(--red);color:#fff}
+
+/* arrastar e soltar */
+.pcard,.novo-card{cursor:grab}
+.pcard:active,.novo-card:active{cursor:grabbing}
+.pcard.arrastando,.novo-card.arrastando{opacity:.45}
+.quadro.arrastando-ativo [data-drop]{outline:2px dashed #d6d6d6;outline-offset:-2px;border-radius:8px}
+[data-drop].alvo-drop{outline:2px dashed var(--red)!important;background:#fff5f6!important}
+[data-drop].alvo-proibido{outline:2px dashed #bbb!important;background:#f0f0f0!important;cursor:not-allowed}
+.grupo-ped{border-radius:6px;transition:background .15s}
